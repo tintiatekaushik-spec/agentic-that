@@ -507,14 +507,47 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     ensureTrustedOrigin(request);
     enforceRateLimit(`password-login:${clientAddress(request)}`, Math.max(5, Math.floor(config.rateLimitMaxRequests / 6)));
     const body = await readJsonBody(request);
+    const username = requiredString(body, "username", 120);
+    const password = requiredString(body, "password", 1000);
+    const passwordUser = await store.findUserByPassword(username, password);
+    if (passwordUser) {
+      const session = await store.createBrowserSessionForUser(passwordUser, config.appSessionTtlHours);
+      sendJson(request, response, 201, { ok: true, user: session.user, expiresAt: session.expiresAt }, {
+        "set-cookie": sessionCookie(session.sessionToken, config.appSessionTtlHours * 60 * 60)
+      });
+      return;
+    }
+
     const configuredUser = findConfiguredLoginUser(
       configuredLoginUsers,
-      requiredString(body, "username", 120),
-      requiredString(body, "password", 1000)
+      username,
+      password
     );
     if (!configuredUser) throw new HttpError(401, "Sign in failed.");
     const user = await store.findOrCreateConfiguredUser(configuredLoginId(configuredUser), configuredUser.displayName);
     const session = await store.createBrowserSessionForUser(user, config.appSessionTtlHours);
+    sendJson(request, response, 201, { ok: true, user: session.user, expiresAt: session.expiresAt }, {
+      "set-cookie": sessionCookie(session.sessionToken, config.appSessionTtlHours * 60 * 60)
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/v1/auth/register") {
+    ensureTrustedOrigin(request);
+    enforceRateLimit(`password-register:${clientAddress(request)}`, Math.max(3, Math.floor(config.rateLimitMaxRequests / 10)));
+    const body = await readJsonBody(request);
+    let created;
+    try {
+      created = await store.createPasswordUser(
+        requiredString(body, "username", 120),
+        requiredString(body, "password", 1000),
+        optionalString(body, "displayName", 120)
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not create account.";
+      throw new HttpError(message.includes("taken") ? 409 : 400, message);
+    }
+    const session = await store.createBrowserSessionForUser(created.user, config.appSessionTtlHours);
     sendJson(request, response, 201, { ok: true, user: session.user, expiresAt: session.expiresAt }, {
       "set-cookie": sessionCookie(session.sessionToken, config.appSessionTtlHours * 60 * 60)
     });

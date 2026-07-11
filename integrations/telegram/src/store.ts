@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { constants as fsConstants } from "node:fs";
 import { access, mkdir, open, readFile, rename, stat, unlink, writeFile, type FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -49,6 +49,7 @@ type AppUserRow = {
   displayName: string;
   tokenHash: string;
   configuredLogin: string;
+  passwordHash?: string;
   createdAt: string;
 };
 
@@ -108,9 +109,24 @@ type JsonDatabase = {
 export class AccountAlreadyLinkedError extends Error {}
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+const passwordKey = (username: string) => `password:${username.trim().toLowerCase()}`;
 const asIso = (value: Date) => value.toISOString();
 const nowIso = () => new Date().toISOString();
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("base64url");
+  const key = scryptSync(password, salt, 32).toString("base64url");
+  return `scrypt:v1:${salt}:${key}`;
+}
+
+function verifyPassword(password: string, storedHash = "") {
+  const [algorithm, version, salt, expectedKey] = storedHash.split(":");
+  if (algorithm !== "scrypt" || version !== "v1" || !salt || !expectedKey) return false;
+  const expected = Buffer.from(expectedKey, "base64url");
+  const actual = scryptSync(password, salt, expected.length);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
 
 function emptyDatabase(): JsonDatabase {
   return {
@@ -191,6 +207,38 @@ export class MultiUserStore {
       return null;
     });
     return { user, accessToken };
+  }
+
+  async createPasswordUser(username: string, password: string, displayName: string) {
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!normalizedUsername) throw new Error("Username is required.");
+    if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+
+    const accessToken = `tgr_${randomBytes(32).toString("base64url")}`;
+    const loginId = passwordKey(normalizedUsername);
+    return this.updateDatabase((database) => {
+      if (database.appUsers.some((user) => user.configuredLogin === loginId)) {
+        throw new Error("Username is already taken.");
+      }
+
+      const row: AppUserRow = {
+        id: randomUUID(),
+        displayName: displayName.trim() || username.trim(),
+        tokenHash: hashToken(accessToken),
+        configuredLogin: loginId,
+        passwordHash: hashPassword(password),
+        createdAt: nowIso()
+      };
+      database.appUsers.push(row);
+      return { user: { id: row.id, displayName: row.displayName }, accessToken };
+    });
+  }
+
+  async findUserByPassword(username: string, password: string): Promise<AppUser | null> {
+    const database = await this.readDatabase();
+    const loginId = passwordKey(username);
+    const row = database.appUsers.find((user) => user.configuredLogin === loginId);
+    return row && verifyPassword(password, row.passwordHash) ? { id: row.id, displayName: row.displayName } : null;
   }
 
   async findOrCreateConfiguredUser(loginId: string, displayName: string): Promise<AppUser> {

@@ -15,9 +15,7 @@ export type ConfiguredLoginUser = {
   displayName: string;
 };
 
-const DEFAULT_LOGIN_USERS: ConfiguredLoginUser[] = [
-  { username: "admin", password: "admin123", displayName: "Administrator" }
-];
+const DEFAULT_LOGIN_USERS: ConfiguredLoginUser[] = [];
 
 function asUsers(raw: unknown): ConfiguredLoginUser[] {
   const source = raw as RawLoginFile;
@@ -44,7 +42,6 @@ function readLoginFile(filePath: string): ConfiguredLoginUser[] | null {
   if (!existsSync(filePath)) return null;
   const parsed = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
   const users = asUsers(parsed);
-  if (users.length === 0) throw new Error("Login config must contain at least one user.");
   return users;
 }
 

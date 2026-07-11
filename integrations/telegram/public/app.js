@@ -96,7 +96,7 @@ const state = {
 
 const el = {
   signInView: $("sign-in-view"), workspace: $("workspace"), identity: $("identity"), userName: $("user-name"), signOut: $("sign-out"),
-  passwordSignInForm: $("password-sign-in-form"), tokenSignInForm: $("token-sign-in-form"), username: $("username"), loginPassword: $("login-password"), accessToken: $("access-token"), signInStatus: $("sign-in-status"),
+  passwordSignInForm: $("password-sign-in-form"), tokenSignInForm: $("token-sign-in-form"), username: $("username"), loginPassword: $("login-password"), displayName: $("display-name"), createAccount: $("create-account"), accessToken: $("access-token"), signInStatus: $("sign-in-status"),
   viewKicker: $("view-kicker"), viewTitle: $("view-title"), profileSelect: $("global-profile-select"), refreshAccounts: $("refresh-accounts"),
   phoneForm: $("phone-form"), telegramApiId: $("telegram-api-id"), telegramApiHash: $("telegram-api-hash"), phone: $("phone"), phoneCountryCode: $("phone-country-code"), codeForm: $("code-form"), code: $("code"), passwordForm: $("password-form"), telegramPassword: $("telegram-password"), connectStep: $("connect-step"), connectCopy: $("connect-copy"), connectStatus: $("connect-status"),
   accountList: $("account-list"), numberSearch: $("number-search"), numberStatusFilter: $("number-status-filter"), selectedProfileCard: $("selected-profile-card"),
@@ -122,7 +122,19 @@ async function api(path, options = {}) {
 function status(node, message = "", tone = "") { node.textContent = message; tone ? node.dataset.tone = tone : delete node.dataset.tone; }
 function busy(form, isBusy) { const button = form.querySelector("button[type='submit']"); if (button) button.disabled = isBusy; }
 function onError(error, node) { if (error instanceof ApiError && error.status === 401) return signedOut("Your session has ended. Please sign in again."); status(node, error instanceof Error ? error.message : "Something went wrong.", "error"); }
-function signedOut(message = "") { state.user = null; state.accounts = []; el.workspace.hidden = true; el.identity.hidden = true; el.signInView.hidden = false; resetLogin(); status(el.signInStatus, message, message ? "error" : ""); }
+function clearLocalWorkspace() {
+  [keys.selected, keys.inboxView, keys.profiles, keys.contacts, keys.groups, keys.channels, keys.posts, keys.postHistory].forEach((key) => localStorage.removeItem(key));
+  state.accounts = [];
+  state.selected = "";
+  state.profiles = {};
+  state.contacts = [];
+  state.groups = [];
+  state.channels = [];
+  state.posts = [];
+  state.postHistory = [];
+  state.inbox = { messages: [], selectedThread: "", loading: false, lastSyncAt: 0, view: "split", drafts: {} };
+}
+function signedOut(message = "", clearWorkspace = false) { if (clearWorkspace) clearLocalWorkspace(); state.user = null; state.accounts = []; el.workspace.hidden = true; el.identity.hidden = true; el.signInView.hidden = false; resetLogin(); status(el.signInStatus, message, message ? "error" : ""); }
 function signedIn(user) { state.user = user; el.signInView.hidden = true; el.workspace.hidden = false; el.identity.hidden = false; el.userName.textContent = user.displayName; applyTheme(); }function accountLabel(account) { return account.username ? `@${account.username}` : `Telegram ${account.telegramUserId || "account"}`; }
 function currentAccount() { return state.accounts.find((account) => account.id === state.selected) || null; }
 function profileFor(account) {
@@ -849,6 +861,14 @@ el.passwordSignInForm.addEventListener("submit", async (event) => {
   catch (error) { onError(error, el.signInStatus); }
   finally { busy(el.passwordSignInForm, false); }
 });
+el.createAccount.addEventListener("click", async () => {
+  const username = el.username.value.trim(), password = el.loginPassword.value, displayName = el.displayName.value.trim();
+  if (!username || !password) return status(el.signInStatus, "Choose a username and password.", "error");
+  el.createAccount.disabled = true; busy(el.passwordSignInForm, true); status(el.signInStatus, "Creating your workspace...");
+  try { const data = await api("/v1/auth/register", { method: "POST", body: { username, password, displayName } }); el.loginPassword.value = ""; el.displayName.value = ""; signedIn(data.user); await loadAccounts(); }
+  catch (error) { onError(error, el.signInStatus); }
+  finally { el.createAccount.disabled = false; busy(el.passwordSignInForm, false); }
+});
 el.tokenSignInForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const accessToken = el.accessToken.value.trim();
@@ -858,7 +878,7 @@ el.tokenSignInForm.addEventListener("submit", async (event) => {
   catch (error) { onError(error, el.signInStatus); }
   finally { busy(el.tokenSignInForm, false); }
 });
-el.signOut.addEventListener("click", async () => { try { await api("/v1/auth/session", { method: "DELETE" }); } catch {} signedOut(); });
+el.signOut.addEventListener("click", async () => { try { await api("/v1/auth/session", { method: "DELETE" }); } catch {} signedOut("", true); });
 el.refreshAccounts.addEventListener("click", async () => { status(el.messageStatus, "Refreshing accounts..."); try { await loadAccounts(); status(el.messageStatus, "Account list is up to date.", "success"); } catch (error) { onError(error, el.messageStatus); } });
 el.profileSelect.addEventListener("change", () => selectAccount(el.profileSelect.value));
 

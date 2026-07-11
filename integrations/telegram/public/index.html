@@ -13,14 +13,19 @@
         <div class="auth-card">
           <p class="eyebrow">Private workflow access</p>
           <h1 id="sign-in-title">Telegram Workflow</h1>
-          <p class="lede">Sign in with the configured JSON user, then manage profiles, contacts, groups, posts, and manual sending from one workspace.</p>
+          <p class="lede">Create your own workspace or sign in to manage your Telegram profiles, contacts, groups, posts, and messages.</p>
 
           <form id="password-sign-in-form" class="stack" novalidate>
             <label for="username">Username</label>
-            <input id="username" name="username" type="text" autocomplete="username" value="admin" required>
+            <input id="username" name="username" type="text" autocomplete="username" required>
             <label for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" value="admin123" required>
-            <button class="button primary" type="submit">Sign in</button>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+            <label for="display-name">Display name</label>
+            <input id="display-name" name="displayName" type="text" autocomplete="name" placeholder="Only needed when creating an account">
+            <div class="button-row">
+              <button class="button primary" type="submit">Sign in</button>
+              <button id="create-account" class="button ghost" type="button">Create account</button>
+            </div>
           </form>
 
           <details class="token-panel">
@@ -1038,6 +1043,6 @@
         </div>
       </section>
     </main>
-    <script src="/app.js?v=telegram-ui-3" defer></script>
+    <script src="/app.js?v=telegram-ui-4" defer></script>
   </body>
 </html>

@@ -22,7 +22,7 @@ No PostgreSQL, Supabase, pgAdmin, or separate database server is required. Backe
 
 ## What You Can Do
 
-- Sign in to the browser dashboard with a configured JSON user.
+- Create a private browser dashboard account or sign in to an existing one.
 - Connect Telegram phone numbers with verification code and optional Telegram 2FA password.
 - Select which connected profile/number should send messages.
 - Send quick messages to `@username` or `+countrycode` phone numbers.
@@ -45,7 +45,7 @@ contact-telegram/
     account-client.ts               Telegram user-account login, send, media, listen helpers
     store.ts                        JSON datastore, encryption, users, sessions, messages
     config.ts                       .env loading and runtime config
-    login-config.ts                 JSON username/password login config
+    login-config.ts                 Optional JSON username/password login config
     listen.ts                       Incoming-message listener worker
     login.ts                        CLI Telegram account connection helper
     send-direct.ts                  CLI send helper
@@ -56,7 +56,7 @@ contact-telegram/
     app.js                          Browser workflow logic
     styles.css                      Dashboard styles
   config/
-    users.json                      Local username/password login users
+    users.json                      Optional local username/password login users
     bot-answers.json                Saved bot answer rules
   docs/
     telegram-workflow-requirements.md
@@ -142,16 +142,11 @@ Open:
 http://127.0.0.1:8787
 ```
 
-### 5. Sign In
+### 5. Create Your Workspace
 
-The local default username/password is read from [config/users.json](config/users.json):
+Open the dashboard and click `Create account` with your own username and password. Each created account has its own connected Telegram numbers, sessions, and message history.
 
-```text
-username: admin
-password: admin123
-```
-
-Change these credentials before sharing the app with anyone. You can also set `AUTH_CONFIG_PATH` to point at another JSON login file.
+You can also set `AUTH_CONFIG_PATH` to point at an optional JSON login file for private/internal deployments.
 
 ### 6. Connect a Telegram Number
 
@@ -468,12 +463,13 @@ Bot variables, only needed for `npm run bot`:
 
 ## Login User Configuration
 
-The browser password login reads users from the first available source:
+Normal users can create their own workspace from the browser sign-in screen.
+
+Optional static password users can also be read from the first available source:
 
 1. `AUTH_CONFIG_PATH`
 2. `config/users.json`
 3. `auth.json`
-4. Built-in fallback `admin` / `admin123`
 
 Supported JSON shape:
 
@@ -481,9 +477,9 @@ Supported JSON shape:
 {
   "users": [
     {
-      "username": "admin",
-      "password": "admin123",
-      "displayName": "Administrator"
+      "username": "team-member",
+      "password": "change-this-password",
+      "displayName": "Team Member"
     }
   ]
 }
@@ -521,13 +517,22 @@ The response returns an `accessToken` once. Store it privately.
 
 ### Browser Sign-In
 
+Create a browser account:
+
+```text
+POST /v1/auth/register
+Content-Type: application/json
+
+{ "username": "maya", "password": "long-private-password", "displayName": "Maya" }
+```
+
 Username/password:
 
 ```text
 POST /v1/auth/password
 Content-Type: application/json
 
-{ "username": "admin", "password": "admin123" }
+{ "username": "maya", "password": "long-private-password" }
 ```
 
 Access-token bootstrap:
@@ -787,7 +792,6 @@ Change `SERVICE_PORT` in `.env`, then restart `npm run server`.
 ## Production Checklist
 
 - Replace local JSON login with your real auth/session system.
-- Change the default `admin` / `admin123` credentials.
 - Use HTTPS and set `SESSION_COOKIE_SECURE=true`.
 - Keep `.env` and all secrets in a secret manager.
 - Restrict network access to the API.
@@ -795,5 +799,3 @@ Change `SERVICE_PORT` in `.env`, then restart `npm run server`.
 - Add backups for `data/store.json` and exported workspace JSON where needed.
 - Add monitoring, structured logs, retries, abuse controls, and alerting.
 - Respect Telegram rate limits, user consent, privacy rules, and data-retention obligations.
-
-
