@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
-import Video from "./public/Hero_Video.mp4";
+import Video from "./public/Hero_video.mp4";
 import FacebookLogo from "./public/facebook-logo.svg";
 import GoogleLogo from "./public/google-logo.svg";
 import GoogleMapsLogo from "./public/google-maps-logo.svg";
@@ -126,6 +126,11 @@ function App() {
   }, []);
 
   const openTelegramDashboard = () => {
+    if (!integrations.telegram.dashboardUrl) {
+      window.alert("Telegram dashboard backend URL is not configured for this deployment.");
+      return;
+    }
+
     window.location.href = integrations.telegram.dashboardUrl;
   };
 
