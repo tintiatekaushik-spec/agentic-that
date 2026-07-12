@@ -1715,7 +1715,7 @@ export async function runInstagramScrape(input: InstagramScrapeInput) {
   const oldestAllowed = oldestAllowedCutoff(input, preferredCutoff);
   const sessions = orderedSessions(await loadStorageSessions());
 
-  if (normalized.mode === "post" && isServerlessRuntime()) {
+  if (normalized.mode === "post") {
     return scrapePostDirect(normalized);
   }
 
