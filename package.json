@@ -8,6 +8,7 @@
     "services:telegram": "npm --prefix services/messaging/telegram run server",
     "services:telegram:install": "npm --prefix services/messaging/telegram install",
     "services:instagram": "tsx services/scraping/instagram/src/server.ts",
+    "instagram:login": "node services/scraping/instagram/scripts/save-session.mjs",
     "services:install": "npm run services:telegram:install",
     "telegram:dashboard": "npm run services:telegram",
     "dev:telegram": "concurrently -k -n site,telegram -c cyan,green \"npm run dev\" \"npm run telegram:dashboard\"",

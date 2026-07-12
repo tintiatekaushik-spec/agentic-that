@@ -35,3 +35,11 @@ services/scraping/instagram/account_config/sessions/
 ```
 
 These files are ignored by Git. The scraper rotates through the loaded sessions, prefers sessions that are not near expiry, and moves near-expiry sessions to the end of the pool. Set `INSTAGRAM_SESSION_EXPIRY_BUFFER_DAYS` to change the default 7-day expiry buffer.
+
+To create a local session:
+
+```bash
+npm run instagram:login -- instagram-1
+```
+
+Repeat with `instagram-2` and `instagram-3` for more backend accounts.
