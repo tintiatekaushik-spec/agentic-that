@@ -61,12 +61,20 @@ export async function handleInstagramRequest(request: Request) {
         : typeof body.onlyPostsNewerThan === "string"
           ? body.onlyPostsNewerThan
           : undefined;
+      const autoExpandDays = typeof body.auto_expand_days === "boolean"
+        ? body.auto_expand_days
+        : typeof body.autoExpandDays === "boolean"
+          ? body.autoExpandDays
+          : true;
+      const maxAutoExpandDays = Math.max(1, Number(body.max_auto_expand_days || body.maxAutoExpandDays) || 365);
 
       const scrape = await runInstagramScrape({
         query: requestedQuery,
         maxResults,
         recentDays,
-        onlyPostsNewerThan
+        onlyPostsNewerThan,
+        autoExpandDays,
+        maxAutoExpandDays
       });
       const run = await store.saveRun({
         query: scrape.query,
