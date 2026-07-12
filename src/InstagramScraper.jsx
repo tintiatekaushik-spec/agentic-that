@@ -1,99 +1,190 @@
 import React, { useEffect, useMemo, useState } from "react";
-import InstagramLogo from "./public/instagram-logo.svg";
 import "./InstagramScraper.css";
 
-const apiBase = "/api/scraping/instagram";
-const inputModes = [
-  { id: "profile", label: "Profile", prefix: "@", placeholder: "username" },
-  { id: "keyword", label: "Hashtag", prefix: "#", placeholder: "keyword" },
-  { id: "url", label: "URL", prefix: "", placeholder: "https://instagram.com/p/..." }
-];
-const exportColumns = ["username", "display_name", "post_url", "comments_count", "likes", "follower_count", "timestamp", "caption"];
+const API_URL = "/api/scraping/instagram";
+const DEFAULT_MAX_RESULTS = 10;
+const DEFAULT_RECENT_DAYS = 7;
 
-function dateFromDays(days) {
+const inputModes = [
+  {
+    id: "profile",
+    label: "Profile",
+    prefix: "@",
+    fieldLabel: "Username",
+    placeholder: "Enter username"
+  },
+  {
+    id: "keyword",
+    label: "Keyword",
+    prefix: "#",
+    fieldLabel: "Keyword",
+    placeholder: "Enter keyword"
+  },
+  {
+    id: "url",
+    label: "URL",
+    prefix: "",
+    fieldLabel: "Instagram URL",
+    placeholder: "Enter URL"
+  }
+];
+
+const cleanModeValue = (mode, value) => {
+  const text = value.trim();
+  if (mode === "profile") return text.replace(/^@+/, "").trim();
+  if (mode === "keyword") return text.replace(/^#+/, "").trim();
+  return text;
+};
+
+const composeScrapeQuery = (mode, value) => {
+  const cleanValue = cleanModeValue(mode, value);
+  if (!cleanValue) return "";
+  if (mode === "profile") return `@${cleanValue}`;
+  if (mode === "keyword") return `#${cleanValue}`;
+  return cleanValue;
+};
+
+const detectInputMode = (value) => {
+  const text = value.trim();
+  if (text.startsWith("#")) return { mode: "keyword", value: cleanModeValue("keyword", text) };
+  if (text.startsWith("@")) return { mode: "profile", value: cleanModeValue("profile", text) };
+  if (/^(https?:\/\/|www\.|instagram\.com\/)/i.test(text)) return { mode: "url", value: text };
+  return { mode: "profile", value: text };
+};
+
+const dateFromRecentDays = (days) => {
   const date = new Date();
   date.setDate(date.getDate() - Math.max(1, Number(days) || 1));
   return date.toISOString().slice(0, 10);
+};
+
+const exportColumns = [
+  "rank",
+  "thumbnail_url",
+  "username",
+  "display_name",
+  "post_url",
+  "comments_count",
+  "likes",
+  "follower_count",
+  "top_comments",
+  "timestamp"
+];
+
+async function apiGet(path) {
+  const response = await fetch(`${API_URL}${path}`);
+  if (!response.ok) return {};
+  return response.json();
 }
 
-function composeQuery(mode, value) {
-  const text = value.trim();
-  if (!text) return "";
-  if (mode === "profile") return `@${text.replace(/^@+/, "")}`;
-  if (mode === "keyword") return `#${text.replace(/^#+/, "")}`;
-  return text;
+async function apiPost(path, body) {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || data.message || "Scrape failed");
+  }
+  return data;
 }
 
-function formatNumber(value) {
-  return value === null || value === undefined ? "N/A" : Number(value).toLocaleString();
-}
-
-function formatDate(value) {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "N/A";
-}
-
-function download(content, filename, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-export default function InstagramScraper() {
-  const [mode, setMode] = useState("profile");
-  const [value, setValue] = useState("");
-  const [maxResults, setMaxResults] = useState(10);
-  const [recentDays, setRecentDays] = useState(7);
-  const [keywords, setKeywords] = useState([]);
+function InstagramScraper() {
+  const [inputMode, setInputMode] = useState(null);
+  const [inputValue, setInputValue] = useState("");
+  const [maxResults, setMaxResults] = useState(DEFAULT_MAX_RESULTS);
+  const [recentDays, setRecentDays] = useState(DEFAULT_RECENT_DAYS);
   const [results, setResults] = useState([]);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [error, setError] = useState("");
-  const onlyPostsNewerThan = useMemo(() => dateFromDays(recentDays), [recentDays]);
+  const [keywords, setKeywords] = useState([]);
+  const [page, setPage] = useState("start");
+  const [error, setError] = useState(null);
+  const [lastQuery, setLastQuery] = useState("");
+  const onlyPostsNewerThan = useMemo(() => dateFromRecentDays(recentDays), [recentDays]);
+  const activeInputMode = inputModes.find((item) => item.id === inputMode);
 
   useEffect(() => {
-    fetch(`${apiBase}/runs/keywords`)
-      .then((response) => response.ok ? response.json() : { keywords: [] })
+    apiGet("/runs/keywords")
       .then((data) => setKeywords(data.keywords || []))
       .catch(() => {});
   }, []);
 
+  const selectInputMode = (mode) => {
+    setInputMode(mode);
+    setInputValue((value) => cleanModeValue(mode, value));
+    setError(null);
+  };
+
+  const selectSavedQuery = (value) => {
+    const detected = detectInputMode(value);
+    setInputMode(detected.mode);
+    setInputValue(detected.value);
+    setError(null);
+  };
+
   const startScrape = async () => {
-    const nextQuery = composeQuery(mode, value);
-    if (!nextQuery) {
-      setError("Enter a profile, hashtag, or Instagram URL.");
+    if (!inputMode) {
+      setError("Select Profile, Keyword, or URL first.");
       return;
     }
 
-    setError("");
+    const cleanQuery = composeScrapeQuery(inputMode, inputValue);
+    if (!cleanQuery) {
+      setError(inputMode === "url" ? "Paste an Instagram URL." : "Enter text for the selected input type.");
+      return;
+    }
+
+    setError(null);
     setResults([]);
-    setQuery(nextQuery);
-    setStatus("working");
+    setLastQuery(cleanQuery);
+    setPage("working");
 
     try {
-      const response = await fetch(`${apiBase}/scrape`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          query: nextQuery,
-          max_results: maxResults,
-          recent_days: recentDays,
-          only_posts_newer_than: onlyPostsNewerThan
-        })
+      const data = await apiPost("/scrape", {
+        keyword: cleanQuery,
+        max_results: maxResults,
+        recent_days: recentDays,
+        only_posts_newer_than: onlyPostsNewerThan,
+        auto_expand_days: true,
+        max_auto_expand_days: 365
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Scrape failed.");
-      setResults(data.results || []);
-      setStatus("done");
+      setResults(data?.results || []);
+      setPage("results");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Scrape failed.");
-      setStatus("idle");
+      setError(err instanceof Error ? err.message : "Scrape failed");
+      setPage("start");
     }
+  };
+
+  const formatNumber = (value) => {
+    if (value === undefined || value === null) return "N/A";
+    return Number(value).toLocaleString();
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "N/A";
+    return new Date(value).toLocaleString();
+  };
+
+  const relativeDate = (value) => {
+    if (!value) return "Unknown";
+    const postDate = new Date(value);
+    const now = new Date();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const age = Math.floor((now.setHours(0, 0, 0, 0) - postDate.setHours(0, 0, 0, 0)) / oneDay);
+    if (age <= 0) return "Today";
+    if (age === 1) return "Yesterday";
+    return `${age} days ago`;
+  };
+
+  const download = (content, filename, type) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportJson = () => {
@@ -102,147 +193,204 @@ export default function InstagramScraper() {
 
   const exportCsv = () => {
     const escapeCell = (value) => {
-      if (value === null || value === undefined) return "";
-      const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+      if (value === undefined || value === null) return "";
+      const text = Array.isArray(value) || typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value);
       return `"${text.replaceAll('"', '""')}"`;
     };
     const rows = [
       exportColumns.join(","),
-      ...results.map((item) => exportColumns.map((key) => escapeCell(item[key])).join(","))
+      ...results.map((item, index) => exportColumns.map((key) => (
+        key === "rank" ? index + 1 : escapeCell(item[key])
+      )).join(","))
     ];
     download(rows.join("\n"), "instagram-results.csv", "text/csv");
   };
 
-  if (status === "working") {
+  if (page === "working") {
     return (
-      <main className="scraper-page scraper-working">
-        <div className="scraper-loader" />
-        <p className="scraper-kicker">Instagram scraper</p>
-        <h1>Collecting public posts</h1>
-        <p>Searching {query} from {onlyPostsNewerThan}. Keep this tab open.</p>
+      <main className="instagram-scraper-app work-page">
+        <div className="loader-ring" />
+        <p className="eyebrow">Agent is working</p>
+        <h1>Fetching latest posts and reels</h1>
+        <p className="work-copy">
+          Starting with posts newer than {onlyPostsNewerThan}; expanding older if needed for {lastQuery}.
+        </p>
       </main>
     );
   }
 
-  return (
-    <main className="scraper-page">
-      <header className="scraper-header">
-        <button type="button" className="scraper-back" onClick={() => { window.location.href = "/"; }}>
-          Back
-        </button>
-        <div className="scraper-title">
-          <img src={InstagramLogo} alt="" />
+  if (page === "results") {
+    return (
+      <main className="instagram-scraper-app results-page">
+        <header className="workspace-header">
           <div>
-            <p className="scraper-kicker">Scraping service</p>
-            <h1>Instagram Scraper</h1>
+            <p className="eyebrow">Dataset ready</p>
+            <h1>{lastQuery}</h1>
+            <p className="subtle">Latest public posts and reels, newest first.</p>
           </div>
-        </div>
-      </header>
-
-      <section className="scraper-console">
-        <div className="scraper-form">
-          <div className="mode-row">
-            {inputModes.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={mode === item.id ? "selected" : ""}
-                onClick={() => setMode(item.id)}
-              >
-                <span>{item.prefix || "URL"}</span>
-                {item.label}
-              </button>
-            ))}
+          <div className="toolbar">
+            <button onClick={() => setPage("start")}>New Search</button>
+            <button onClick={exportJson} disabled={!results.length}>JSON</button>
+            <button onClick={exportCsv} disabled={!results.length}>CSV</button>
           </div>
+        </header>
 
-          <label htmlFor="instagram-query">Input</label>
-          <input
-            id="instagram-query"
-            value={value}
-            placeholder={inputModes.find((item) => item.id === mode)?.placeholder}
-            onChange={(event) => setValue(event.target.value)}
-            onKeyDown={(event) => { if (event.key === "Enter") startScrape(); }}
-          />
-
-          <div className="number-row">
-            <label>
-              Count
-              <input min="1" max="20" type="number" value={maxResults} onChange={(event) => setMaxResults(event.target.value)} />
-            </label>
-            <label>
-              Recent days
-              <input min="1" max="365" type="number" value={recentDays} onChange={(event) => setRecentDays(event.target.value)} />
-            </label>
+        {results.length === 0 ? (
+          <div className="empty-panel">
+            Public Instagram did not return usable posts for this input. Try a public username, #hashtag, or direct reel URL.
           </div>
-
-          <button type="button" className="scraper-primary" onClick={startScrape}>
-            Start scrape
-          </button>
-
-          {keywords.length > 0 && (
-            <div className="quick-picks">
-              {keywords.map((item) => (
-                <button key={item} type="button" onClick={() => setValue(item.replace(/^[@#]/, ""))}>
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {error && <div className="scraper-error">{error}</div>}
-        </div>
-
-        <div className="scraper-results">
-          <div className="results-head">
-            <div>
-              <p className="scraper-kicker">Dataset</p>
-              <h2>{status === "done" ? `${results.length} results` : "Ready"}</h2>
-            </div>
-            <div className="export-row">
-              <button type="button" onClick={exportJson} disabled={!results.length}>JSON</button>
-              <button type="button" onClick={exportCsv} disabled={!results.length}>CSV</button>
-            </div>
-          </div>
-
-          {results.length === 0 ? (
-            <div className="empty-results">Run a scrape to see posts, reels, metrics, captions, and export files here.</div>
-          ) : (
-            <div className="table-frame">
+        ) : (
+          <section className="data-panel">
+            <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Post</th>
                     <th>Author</th>
-                    <th>Likes</th>
+                    <th>Post URL</th>
                     <th>Comments</th>
+                    <th>Likes</th>
                     <th>Followers</th>
-                    <th>Published</th>
-                    <th>Caption</th>
+                    <th>Top comments</th>
+                    <th>Posted on</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((item, index) => (
-                    <tr key={`${item.post_url}-${index}`}>
+                  {results.map((post, index) => (
+                    <tr key={`${post.post_url}-${index}`}>
+                      <td>{index + 1}</td>
                       <td>
-                        <a href={item.post_url} target="_blank" rel="noreferrer">
-                          {item.thumbnail_url && <img src={item.thumbnail_url} alt="" />}
-                          Open
-                        </a>
+                        <div className="post-cell">
+                          <div className="mini-thumb">
+                            {post.thumbnail_url ? <img src={post.thumbnail_url} alt="" /> : <span />}
+                          </div>
+                          <span>{relativeDate(post.timestamp)}</span>
+                        </div>
                       </td>
-                      <td>{item.display_name || item.username || "Unknown"}</td>
-                      <td>{formatNumber(item.likes)}</td>
-                      <td>{formatNumber(item.comments_count)}</td>
-                      <td>{formatNumber(item.follower_count)}</td>
-                      <td>{formatDate(item.timestamp)}</td>
-                      <td className="caption-cell">{item.caption || "N/A"}</td>
+                      <td>
+                        <strong>{post.display_name || post.username || "Unknown"}</strong>
+                      </td>
+                      <td><a href={post.post_url} target="_blank" rel="noopener noreferrer">Open post</a></td>
+                      <td>{formatNumber(post.comments_count)}</td>
+                      <td>{formatNumber(post.likes)}</td>
+                      <td>{formatNumber(post.follower_count)}</td>
+                      <td>
+                        <div className="comment-list">
+                          {(post.top_comments || []).slice(0, 5).map((comment, commentIndex) => (
+                            <p key={`${comment.username}-${commentIndex}`}>
+                              <strong>{comment.username}</strong> {comment.text}
+                            </p>
+                          ))}
+                          {(!post.top_comments || post.top_comments.length === 0) && <span>N/A</span>}
+                        </div>
+                      </td>
+                      <td>{formatDate(post.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
+          </section>
+        )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="instagram-scraper-app start-page">
+      <section className="intro-panel">
+        <p className="eyebrow">Instagram intelligence</p>
+        <h1>Build a clean latest-post dataset</h1>
+        <p>
+          Choose Profile, Keyword, or URL, then enter the value. Recent days is tried first, then older posts are added if needed.
+        </p>
+      </section>
+
+      <section className="launch-panel">
+        <div className={`input-builder ${inputMode ? "is-active" : ""}`}>
+          <fieldset className="mode-picker">
+            <legend>Choose input type</legend>
+            <div className="mode-options">
+              {inputModes.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`mode-button ${inputMode === item.id ? "is-selected" : ""}`}
+                  onClick={() => selectInputMode(item.id)}
+                >
+                  <span className="mode-symbol">{item.prefix || "URL"}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className={`guided-input ${inputMode ? "is-visible" : ""}`}>
+            {activeInputMode && (
+              <>
+                <label htmlFor="query">{activeInputMode.fieldLabel}</label>
+                <div className="prefixed-input">
+                  {activeInputMode.prefix && (
+                    <span className="input-prefix" aria-hidden="true">{activeInputMode.prefix}</span>
+                  )}
+                  <input
+                    id="query"
+                    type={inputMode === "url" ? "url" : "text"}
+                    placeholder={activeInputMode.placeholder}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") startScrape();
+                    }}
+                    autoFocus
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
+
+        <div className="launch-row">
+          <div>
+            <label htmlFor="count">Count</label>
+            <input
+              id="count"
+              type="number"
+              min="1"
+              max="50"
+              value={maxResults}
+              onChange={(e) => setMaxResults(Math.max(1, Number(e.target.value) || 1))}
+            />
+          </div>
+          <div>
+            <label htmlFor="recent-days">Recent days</label>
+            <input
+              id="recent-days"
+              type="number"
+              min="1"
+              max="30"
+              value={recentDays}
+              onChange={(e) => setRecentDays(Math.max(1, Number(e.target.value) || 1))}
+            />
+          </div>
+          <button className="primary-button" onClick={startScrape}>Save & Start</button>
+        </div>
+
+        {keywords.length > 0 && (
+          <div className="quick-row">
+            {keywords.slice(0, 7).map((item) => (
+              <button key={item} onClick={() => selectSavedQuery(item)}>{item}</button>
+            ))}
+          </div>
+        )}
+
+        {error && <div className="error-box">{error}</div>}
       </section>
     </main>
   );
 }
+
+export default InstagramScraper;

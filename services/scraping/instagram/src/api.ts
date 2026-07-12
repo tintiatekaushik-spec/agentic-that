@@ -54,7 +54,7 @@ export async function handleInstagramRequest(request: Request) {
       const requestedQuery = String(body.query || body.keyword || "").trim();
       if (!requestedQuery) return json({ message: "Query is required." }, 400);
 
-      const maxResults = Math.max(1, Math.min(20, Number(body.max_results || body.maxResults) || 10));
+      const maxResults = Math.max(1, Math.min(50, Number(body.max_results || body.maxResults) || 10));
       const recentDays = Math.max(1, Math.min(365, Number(body.recent_days || body.recentDays) || 7));
       const onlyPostsNewerThan = typeof body.only_posts_newer_than === "string"
         ? body.only_posts_newer_than

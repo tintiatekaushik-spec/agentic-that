@@ -455,7 +455,7 @@ function cutoffDate(input: InstagramScrapeInput) {
 
 export async function runInstagramScrape(input: InstagramScrapeInput) {
   const normalized = normalizeQuery(input.query);
-  const maxResults = Math.max(1, Math.min(20, Number(input.maxResults) || 10));
+  const maxResults = Math.max(1, Math.min(50, Number(input.maxResults) || 10));
   const candidateCount = normalized.mode === "post" ? 1 : Math.min(60, Math.max(maxResults * 4, 16));
   const cutoff = cutoffDate(input);
 
