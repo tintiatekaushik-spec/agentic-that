@@ -586,8 +586,12 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/health") {
-    sendJson(request, response, 200, { ok: true, service: "telegram-multi-user", storage: "json" });
+  if (request.method === "GET" && (url.pathname === "/health" || url.pathname === "/v1/health")) {
+    sendJson(request, response, 200, {
+      ok: true,
+      service: "telegram-multi-user",
+      storage: process.env.DATA_STORE || "json"
+    });
     return;
   }
 

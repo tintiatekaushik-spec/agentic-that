@@ -230,6 +230,52 @@ function addBase64Session(sessions: InstagramSession[], name: string, value?: st
   addJsonSession(sessions, name, Buffer.from(text, "base64").toString("utf8"));
 }
 
+function instagramCookies(session: InstagramSession) {
+  const state = session.storageState;
+  if (!state || typeof state !== "object" || !("cookies" in state)) return [];
+  const cookies = Array.isArray(state.cookies) ? state.cookies : [];
+  return cookies.filter((cookie) => String(cookie.domain || "").includes("instagram"));
+}
+
+function instagramCookieHeader(session: InstagramSession) {
+  const cookies = instagramCookies(session);
+  if (!cookies.some((cookie) => cookie.name === "sessionid")) return "";
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
+
+function instagramCsrfToken(session: InstagramSession) {
+  return instagramCookies(session).find((cookie) => cookie.name === "csrftoken")?.value || "";
+}
+
+async function instagramApiJson<T>(session: InstagramSession, url: string, init: RequestInit = {}) {
+  const cookie = instagramCookieHeader(session);
+  if (!cookie) throw new Error("Instagram session cookie is missing.");
+
+  const headers = new Headers(init.headers);
+  headers.set("user-agent", defaultUserAgent);
+  headers.set("accept", "*/*");
+  headers.set("accept-language", "en-US,en;q=0.9");
+  headers.set("cookie", cookie);
+  headers.set("x-ig-app-id", "936619743392459");
+  headers.set("x-requested-with", "XMLHttpRequest");
+  const csrf = instagramCsrfToken(session);
+  if (csrf) headers.set("x-csrftoken", csrf);
+
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    signal: init.signal || AbortSignal.timeout(12_000)
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`Instagram API returned ${response.status}.`);
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("Instagram API returned an unreadable response.");
+  }
+}
+
 async function loadLocalSessions() {
   const configuredPath = process.env.INSTAGRAM_STORAGE_STATE_PATH?.trim();
   if (configuredPath && existsSync(configuredPath)) {
@@ -373,6 +419,31 @@ function apiMediaThumbnail(media: Record<string, unknown>): string | null {
   return carousel?.[0] ? apiMediaThumbnail(carousel[0]) : null;
 }
 
+function apiTopComments(media: Record<string, unknown>) {
+  const comments = [
+    ...(
+      Array.isArray(media.preview_comments)
+        ? media.preview_comments as Record<string, unknown>[]
+        : []
+    ),
+    ...(
+      Array.isArray(media.comments)
+        ? media.comments as Record<string, unknown>[]
+        : []
+    )
+  ];
+
+  return cleanTopComments(comments.map((comment) => {
+    const user = comment.user && typeof comment.user === "object" ? comment.user as Record<string, unknown> : {};
+    const createdAt = Number(comment.created_at || comment.created_at_utc);
+    return {
+      username: cleanText(user.username || comment.username),
+      text: cleanText(comment.text),
+      timestamp: Number.isFinite(createdAt) && createdAt > 0 ? new Date(createdAt * 1000).toISOString() : undefined
+    };
+  }));
+}
+
 function apiMediaToPost(media: Record<string, unknown>): InstagramPost | null {
   const code = cleanText(media.code);
   const takenAt = Number(media.taken_at);
@@ -392,10 +463,132 @@ function apiMediaToPost(media: Record<string, unknown>): InstagramPost | null {
     comments_count: Number.isFinite(Number(media.comment_count)) ? Number(media.comment_count) : null,
     likes: Number.isFinite(Number(media.like_count)) ? Number(media.like_count) : null,
     follower_count: Number.isFinite(Number(user.follower_count)) ? Number(user.follower_count) : null,
-    top_comments: [],
+    top_comments: apiTopComments(media),
     timestamp: new Date(takenAt * 1000).toISOString(),
     caption: cleanText((media.caption as Record<string, unknown> | undefined)?.text) || null
   };
+}
+
+function apiMediasFromPayload(payload: unknown) {
+  const medias: Record<string, unknown>[] = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    const record = node as Record<string, unknown>;
+    const media = record.media;
+    if (media && typeof media === "object" && cleanText((media as Record<string, unknown>).code)) {
+      medias.push(media as Record<string, unknown>);
+    }
+    for (const value of Object.values(record)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") visit(value);
+    }
+  };
+  visit(payload);
+  return medias;
+}
+
+async function collectDirectHashtagApiPosts(session: InstagramSession, tag: string, limit: number, cutoff: Date) {
+  const posts: InstagramPost[] = [];
+  const seen = new Set<string>();
+  let maxId = "";
+
+  for (let pageIndex = 0; pageIndex < 4 && posts.length < limit; pageIndex += 1) {
+    const body = new URLSearchParams({
+      include_persistent: "0",
+      max_id: maxId,
+      page: "1",
+      surface: "grid",
+      tab: "recent"
+    });
+
+    const payload = await instagramApiJson<{ more_available?: boolean; next_max_id?: string }>(
+      session,
+      `${instagramHost}/api/v1/tags/${encodeURIComponent(tag)}/sections/`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "referer": `${instagramHost}/explore/tags/${encodeURIComponent(tag)}/?hl=en`
+        },
+        body
+      }
+    );
+
+    const medias = apiMediasFromPayload(payload);
+    if (!medias.length) break;
+
+    for (const media of medias) {
+      const post = apiMediaToPost(media);
+      if (!post || seen.has(post.post_url)) continue;
+      if (post.timestamp && timestampValue(post.timestamp) < cutoff.getTime()) continue;
+      seen.add(post.post_url);
+      posts.push(post);
+      if (posts.length >= limit) break;
+    }
+
+    maxId = cleanText(payload.next_max_id);
+    if (!payload.more_available || !maxId) break;
+  }
+
+  return posts;
+}
+
+async function fetchDirectProfileInfo(session: InstagramSession, username: string) {
+  const payload = await instagramApiJson<{ data?: { user?: Record<string, unknown> } }>(
+    session,
+    `${instagramHost}/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+    { headers: { "referer": `${instagramHost}/${encodeURIComponent(username)}/` } }
+  );
+  const user = payload.data?.user;
+  if (!user) return { followerCount: null, displayName: username };
+
+  const followedBy = user.edge_followed_by && typeof user.edge_followed_by === "object"
+    ? user.edge_followed_by as Record<string, unknown>
+    : {};
+  const followerCount = Number(followedBy.count);
+  return {
+    followerCount: Number.isFinite(followerCount) ? followerCount : null,
+    displayName: cleanText(user.full_name) || username
+  };
+}
+
+async function enrichDirectProfiles(session: InstagramSession, posts: InstagramPost[]) {
+  const handles = [...new Set(posts.map((post) => post.username).filter(Boolean) as string[])].slice(0, 12);
+  const profileEntries = await Promise.all(handles.map(async (handle) => {
+    try {
+      return [handle, await fetchDirectProfileInfo(session, handle)] as const;
+    } catch {
+      return [handle, null] as const;
+    }
+  }));
+  const profiles = new Map(profileEntries);
+
+  return posts.map((post) => {
+    if (!post.username) return post;
+    const profile = profiles.get(post.username);
+    if (!profile) return post;
+    return {
+      ...post,
+      display_name: profile.displayName || post.display_name,
+      follower_count: profile.followerCount ?? post.follower_count,
+      profile_url: `${instagramHost}/${post.username}/`
+    };
+  });
+}
+
+async function scrapeHashtagDirect(
+  session: InstagramSession,
+  normalized: NormalizedQuery,
+  maxResults: number,
+  candidateCount: number,
+  preferredCutoff: Date,
+  oldestAllowed: Date
+): Promise<ScrapeResult> {
+  if (!normalized.tag) return { query: normalized.label, results: [] };
+  const posts = await collectDirectHashtagApiPosts(session, normalized.tag, candidateCount, oldestAllowed);
+  const sorted = posts.sort((a, b) => timestampValue(b.timestamp) - timestampValue(a.timestamp));
+  const selected = selectAutoExpandedResults(sorted, maxResults, preferredCutoff, oldestAllowed);
+  return { query: normalized.label, results: await enrichDirectProfiles(session, selected) };
 }
 
 async function collectHashtagApiPosts(page: Page, tag: string, limit: number, cutoff: Date) {
@@ -1334,6 +1527,26 @@ export async function runInstagramScrape(input: InstagramScrapeInput) {
   const preferredCutoff = newerThanCutoff(input);
   const oldestAllowed = oldestAllowedCutoff(input, preferredCutoff);
   const sessions = orderedSessions(await loadStorageSessions());
+
+  if (normalized.mode === "hashtag") {
+    let lastError: unknown = null;
+    for (const session of sessions) {
+      if (!instagramCookieHeader(session)) continue;
+      try {
+        return await scrapeHashtagDirect(
+          session,
+          normalized,
+          maxResults,
+          candidateCount,
+          preferredCutoff,
+          oldestAllowed
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError && (process.env.NETLIFY === "true" || process.env.SERVERLESS === "true")) throw lastError;
+  }
 
   const browser = await launchBrowser();
   let lastResult: ScrapeResult = { query: normalized.label, results: [] };

@@ -85,7 +85,7 @@ async function apiPost(path, body) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || data.message || "Scrape failed");
+    throw new Error(data.detail || data.message || `Scrape failed (${response.status})`);
   }
   return data;
 }
