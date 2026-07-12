@@ -99,6 +99,7 @@ function InstagramScraper() {
   const [keywords, setKeywords] = useState([]);
   const [page, setPage] = useState("start");
   const [error, setError] = useState(null);
+  const [warning, setWarning] = useState(null);
   const [lastQuery, setLastQuery] = useState("");
   const onlyPostsNewerThan = useMemo(() => dateFromRecentDays(recentDays), [recentDays]);
   const activeInputMode = inputModes.find((item) => item.id === inputMode);
@@ -129,6 +130,7 @@ function InstagramScraper() {
     setInputMode(mode);
     setInputValue((value) => cleanModeValue(mode, value));
     setError(null);
+    setWarning(null);
   };
 
   const selectSavedQuery = (value) => {
@@ -136,6 +138,7 @@ function InstagramScraper() {
     setInputMode(detected.mode);
     setInputValue(detected.value);
     setError(null);
+    setWarning(null);
   };
 
   const startScrape = async () => {
@@ -151,6 +154,7 @@ function InstagramScraper() {
     }
 
     setError(null);
+    setWarning(null);
     setResults([]);
     setLastQuery(cleanQuery);
     setPage("working");
@@ -165,6 +169,7 @@ function InstagramScraper() {
         max_auto_expand_days: 365
       });
       setResults(data?.results || []);
+      setWarning(data?.warning || null);
       setPage("results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scrape failed");
@@ -252,6 +257,8 @@ function InstagramScraper() {
             <button onClick={exportCsv} disabled={!results.length}>CSV</button>
           </div>
         </header>
+
+        {warning && <div className="warning-panel">{warning}</div>}
 
         {results.length === 0 ? (
           <div className="empty-panel">

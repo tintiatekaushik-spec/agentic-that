@@ -28,6 +28,34 @@ function queryKey(value: string) {
   return value.trim().toLowerCase().replace(/^#+/, "#").replace(/^@+/, "@");
 }
 
+function searchableTerms(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//, "")
+    .split(/[^a-z0-9_]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 2);
+}
+
+function runSearchScore(requestedQuery: string, run: Awaited<ReturnType<InstagramRunStore["listRuns"]>>[number]) {
+  const requestedKey = queryKey(requestedQuery);
+  if (queryKey(run.requestedQuery) === requestedKey) return 1000;
+
+  const terms = searchableTerms(requestedQuery);
+  if (!terms.length) return 0;
+  const haystack = [
+    run.requestedQuery,
+    run.query,
+    ...run.results.flatMap((result) => [
+      result.username || "",
+      result.display_name || "",
+      result.caption || ""
+    ])
+  ].join(" ").toLowerCase();
+
+  return terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0);
+}
+
 function friendlyScrapeMessage(error: unknown) {
   let message = error instanceof Error ? error.message : "Instagram scrape failed.";
   if (/browser|chromium|playwright|newContext|Target page/i.test(message)) {
@@ -97,12 +125,17 @@ export async function handleInstagramRequest(request: Request) {
         });
       } catch (error) {
         warning = friendlyScrapeMessage(error);
-        const requestedKey = queryKey(requestedQuery);
-        const fallbackRuns = (await store.listRuns()).filter((run) => (
-          queryKey(run.requestedQuery) === requestedKey &&
+        const savedRuns = (await store.listRuns()).filter((run) => (
           Array.isArray(run.results) &&
           run.results.length > 0
         ));
+        const exactRuns = savedRuns.filter((run) => queryKey(run.requestedQuery) === queryKey(requestedQuery));
+        const fallbackRuns = exactRuns.length
+          ? exactRuns
+          : savedRuns
+            .map((run) => ({ run, score: runSearchScore(requestedQuery, run) }))
+            .sort((a, b) => b.score - a.score || b.run.createdAt.localeCompare(a.run.createdAt))
+            .map((item) => item.run);
         const fallback = fallbackRuns[0];
         if (!fallback) throw error;
 
@@ -122,7 +155,9 @@ export async function handleInstagramRequest(request: Request) {
         return json({
           run: { ...fallback, results: mergedResults },
           results: mergedResults,
-          message: "Showing latest saved results because Instagram blocked the live scrape.",
+          message: exactRuns.length
+            ? "Showing latest saved results because Instagram blocked the live scrape."
+            : "Showing recent saved results because Instagram blocked this new live scrape.",
           warning
         });
       }
