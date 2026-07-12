@@ -98,15 +98,30 @@ export async function handleInstagramRequest(request: Request) {
       } catch (error) {
         warning = friendlyScrapeMessage(error);
         const requestedKey = queryKey(requestedQuery);
-        const fallback = (await store.listRuns()).find((run) => (
+        const fallbackRuns = (await store.listRuns()).filter((run) => (
           queryKey(run.requestedQuery) === requestedKey &&
           Array.isArray(run.results) &&
           run.results.length > 0
         ));
+        const fallback = fallbackRuns[0];
         if (!fallback) throw error;
+
+        const seen = new Set<string>();
+        const mergedResults = [];
+        for (const run of fallbackRuns) {
+          for (const result of run.results) {
+            const key = result.post_url || JSON.stringify(result);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            mergedResults.push(result);
+            if (mergedResults.length >= maxResults) break;
+          }
+          if (mergedResults.length >= maxResults) break;
+        }
+
         return json({
-          run: fallback,
-          results: fallback.results.slice(0, maxResults),
+          run: { ...fallback, results: mergedResults },
+          results: mergedResults,
           message: "Showing latest saved results because Instagram blocked the live scrape.",
           warning
         });
