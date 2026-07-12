@@ -17,6 +17,6 @@ services/
 Root-level files should only contain shared app connection points:
 
 - `src/App.jsx` renders the service catalog.
-- `src/integrations.js` stores frontend URLs and metadata for live services.
+- `src/services.js` stores frontend URLs and metadata for live services.
 - `netlify/functions/` adapts live service APIs to Netlify Functions.
 - `package.json` stores root scripts that start or build service code.

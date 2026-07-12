@@ -11,7 +11,7 @@ import TelegramLogo from "./public/telegram-logo.svg";
 import WhatsAppLogo from "./public/whatsapp-logo.svg";
 import XLogo from "./public/x-logo.svg";
 import YouTubeLogo from "./public/youtube-logo.svg";
-import { integrations } from "./integrations";
+import { serviceEndpoints } from "./services";
 import "./App.css";
 
 const navItems = ["Marketplace", "Services", "Solutions", "Docs", "Company"];
@@ -197,14 +197,14 @@ function App() {
   }, []);
 
   const openTelegramDashboard = () => {
-    if (!integrations.telegram.dashboardUrl) {
+    if (!serviceEndpoints.telegram.dashboardUrl) {
       window.alert(
         "Telegram console is not configured. Set VITE_TELEGRAM_DASHBOARD_URL or use the same-origin /console route."
       );
       return;
     }
 
-    window.location.href = integrations.telegram.dashboardUrl;
+    window.location.href = serviceEndpoints.telegram.dashboardUrl;
   };
 
   return (

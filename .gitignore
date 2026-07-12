@@ -15,6 +15,3 @@ services/**/.env.*
 services/**/data/
 services/**/logs/
 services/**/*.session
-
-# Legacy local service path kept ignored while code lives in services/.
-integrations/
