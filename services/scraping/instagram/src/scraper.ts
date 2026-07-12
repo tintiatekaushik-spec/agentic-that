@@ -738,6 +738,38 @@ async function scrapeProfileDirect(
   return { query: normalized.label, results: selected.map(stripDirectFields) };
 }
 
+async function scrapePostDirect(normalized: NormalizedQuery): Promise<ScrapeResult> {
+  const postUrl = normalized.postUrl || normalized.startUrl;
+  const response = await fetch(
+    `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(postUrl)}&omitscript=true`,
+    {
+      headers: { "user-agent": defaultUserAgent },
+      signal: AbortSignal.timeout(6_000)
+    }
+  );
+  if (!response.ok) throw new Error(`Instagram URL lookup returned ${response.status}.`);
+
+  const payload = await response.json().catch(() => ({})) as { html?: string };
+  const permalink = payload.html?.match(/data-instgrm-permalink="([^"]+)"/)?.[1]?.replace(/&amp;/g, "&");
+  const cleanPermalink = normalizePostUrl(permalink || postUrl) || postUrl;
+  return {
+    query: normalized.label,
+    results: [{
+      username: null,
+      display_name: null,
+      profile_url: null,
+      post_url: cleanPermalink,
+      thumbnail_url: null,
+      comments_count: null,
+      likes: null,
+      follower_count: null,
+      top_comments: [],
+      timestamp: null,
+      caption: null
+    }]
+  };
+}
+
 async function collectHashtagApiPosts(page: Page, tag: string, limit: number, cutoff: Date) {
   const posts: InstagramPost[] = [];
   const seen = new Set<string>();
@@ -1683,10 +1715,15 @@ export async function runInstagramScrape(input: InstagramScrapeInput) {
   const oldestAllowed = oldestAllowedCutoff(input, preferredCutoff);
   const sessions = orderedSessions(await loadStorageSessions());
 
+  if (normalized.mode === "post" && isServerlessRuntime()) {
+    return scrapePostDirect(normalized);
+  }
+
   if (normalized.mode === "hashtag" || normalized.mode === "profile") {
     let lastError: unknown = null;
     const sessionsWithCookies = sessions.filter((session) => instagramCookieHeader(session));
-    const directSessions = isServerlessRuntime() ? sessionsWithCookies.slice(0, 1) : sessionsWithCookies;
+    const serverlessSessionLimit = normalized.mode === "profile" ? 1 : 2;
+    const directSessions = isServerlessRuntime() ? sessionsWithCookies.slice(0, serverlessSessionLimit) : sessionsWithCookies;
     for (const session of directSessions) {
       try {
         if (normalized.mode === "hashtag") {
