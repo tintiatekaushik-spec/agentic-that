@@ -1,4 +1,4 @@
-import { runInstagramScrape } from "./scraper.ts";
+import { getInstagramSessionPoolInfo, runInstagramScrape } from "./scraper.ts";
 import { InstagramRunStore } from "./store.ts";
 
 const jsonHeaders = {
@@ -33,7 +33,7 @@ export async function handleInstagramRequest(request: Request) {
 
   try {
     if (request.method === "GET" && (route === "" || route === "health")) {
-      return json({ ok: true, service: "instagram-scraper" });
+      return json({ ok: true, service: "instagram-scraper", sessionPool: await getInstagramSessionPoolInfo() });
     }
 
     if (request.method === "GET" && route === "runs") {

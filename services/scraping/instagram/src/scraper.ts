@@ -1,6 +1,6 @@
 import chromiumPack from "@sparticuz/chromium";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,10 +50,19 @@ type PageSnapshot = {
   profileHref: string | null;
 };
 
+type InstagramSession = {
+  name: string;
+  storageState?: BrowserContextOptions["storageState"];
+  expiresAt: number;
+  nearExpiry: boolean;
+};
+
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const serviceRoot = path.resolve(moduleDir, "..");
 const instagramHost = "https://www.instagram.com";
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const sessionExpiryBufferDays = Math.max(1, Number(process.env.INSTAGRAM_SESSION_EXPIRY_BUFFER_DAYS) || 7);
+let sessionCursor = 0;
 
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -156,18 +165,124 @@ async function readJsonFile(filePath: string) {
   }
 }
 
-async function storageState() {
-  const json = process.env.INSTAGRAM_STORAGE_STATE_JSON?.trim();
-  if (json) return JSON.parse(json) as BrowserContextOptions["storageState"];
+function sessionExpiry(storageState: BrowserContextOptions["storageState"]) {
+  if (!storageState || typeof storageState !== "object" || !("cookies" in storageState)) return 0;
+  const cookies = Array.isArray(storageState.cookies) ? storageState.cookies : [];
+  const nowSeconds = Date.now() / 1000;
+  const sessionCookie = cookies.find((cookie) => (
+    cookie.name === "sessionid" &&
+    String(cookie.domain || "").includes("instagram") &&
+    Number(cookie.expires) > nowSeconds
+  ));
+  if (sessionCookie) return Number(sessionCookie.expires) * 1000;
 
-  const base64 = process.env.INSTAGRAM_STORAGE_STATE_BASE64?.trim();
-  if (base64) return JSON.parse(Buffer.from(base64, "base64").toString("utf8")) as BrowserContextOptions["storageState"];
+  const expiries = cookies
+    .map((cookie) => Number(cookie.expires))
+    .filter((expires) => expires > nowSeconds)
+    .sort((a, b) => b - a);
+  return expiries[0] ? expiries[0] * 1000 : 0;
+}
 
+function makeSession(name: string, storageState: BrowserContextOptions["storageState"]): InstagramSession {
+  const expiresAt = sessionExpiry(storageState);
+  const nearExpiry = expiresAt > 0 && expiresAt - Date.now() < sessionExpiryBufferDays * 24 * 60 * 60 * 1000;
+  return { name, storageState, expiresAt, nearExpiry };
+}
+
+function addJsonSession(sessions: InstagramSession[], name: string, value?: string) {
+  const text = value?.trim();
+  if (!text) return;
+  sessions.push(makeSession(name, JSON.parse(text) as BrowserContextOptions["storageState"]));
+}
+
+function addBase64Session(sessions: InstagramSession[], name: string, value?: string) {
+  const text = value?.trim();
+  if (!text) return;
+  addJsonSession(sessions, name, Buffer.from(text, "base64").toString("utf8"));
+}
+
+async function loadLocalSessions() {
   const configuredPath = process.env.INSTAGRAM_STORAGE_STATE_PATH?.trim();
-  const localPath = configuredPath || path.join(serviceRoot, "account_config", "sessions", "instagram.json");
-  if (existsSync(localPath)) return await readJsonFile(localPath) as BrowserContextOptions["storageState"];
+  if (configuredPath && existsSync(configuredPath)) {
+    const value = await readJsonFile(configuredPath) as BrowserContextOptions["storageState"];
+    return value ? [makeSession(path.basename(configuredPath, path.extname(configuredPath)), value)] : [];
+  }
 
-  return undefined;
+  const sessionsDir = process.env.INSTAGRAM_STORAGE_STATE_DIR?.trim() || path.join(serviceRoot, "account_config", "sessions");
+  if (!existsSync(sessionsDir)) return [];
+
+  const sessions: InstagramSession[] = [];
+  const files = (await readdir(sessionsDir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".json"))
+    .map((entry) => entry.name)
+    .sort();
+
+  for (const file of files) {
+    const filePath = path.join(sessionsDir, file);
+    const value = await readJsonFile(filePath) as BrowserContextOptions["storageState"];
+    if (value) sessions.push(makeSession(path.basename(file, ".json"), value));
+  }
+
+  return sessions;
+}
+
+async function loadStorageSessions() {
+  const sessions: InstagramSession[] = [];
+
+  addJsonSession(sessions, "env-json", process.env.INSTAGRAM_STORAGE_STATE_JSON);
+  addBase64Session(sessions, "env-base64", process.env.INSTAGRAM_STORAGE_STATE_BASE64);
+
+  const jsonPool = process.env.INSTAGRAM_STORAGE_STATES_JSON?.trim();
+  if (jsonPool) {
+    const parsed = JSON.parse(jsonPool) as unknown;
+    if (Array.isArray(parsed)) {
+      parsed.forEach((item, index) => sessions.push(makeSession(`env-json-${index + 1}`, item as BrowserContextOptions["storageState"])));
+    } else if (parsed && typeof parsed === "object") {
+      Object.entries(parsed).forEach(([name, item]) => sessions.push(makeSession(name, item as BrowserContextOptions["storageState"])));
+    }
+  }
+
+  const base64Pool = process.env.INSTAGRAM_STORAGE_STATES_BASE64?.trim();
+  if (base64Pool) {
+    base64Pool
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item, index) => addBase64Session(sessions, `env-base64-${index + 1}`, item));
+  }
+
+  for (let index = 1; index <= 10; index += 1) {
+    addJsonSession(sessions, `env-json-${index}`, process.env[`INSTAGRAM_STORAGE_STATE_JSON_${index}`]);
+    addBase64Session(sessions, `env-base64-${index}`, process.env[`INSTAGRAM_STORAGE_STATE_BASE64_${index}`]);
+  }
+
+  sessions.push(...await loadLocalSessions());
+  return sessions;
+}
+
+function orderedSessions(sessions: InstagramSession[]) {
+  const active = sessions.filter((session) => !session.nearExpiry);
+  const nearExpiry = sessions.filter((session) => session.nearExpiry);
+  const pool = [...active, ...nearExpiry];
+  if (pool.length === 0) return [{ name: "public", expiresAt: 0, nearExpiry: false } satisfies InstagramSession];
+
+  const start = sessionCursor % pool.length;
+  sessionCursor = (sessionCursor + 1) % pool.length;
+  return [...pool.slice(start), ...pool.slice(0, start)];
+}
+
+export async function getInstagramSessionPoolInfo() {
+  const sessions = await loadStorageSessions();
+  return {
+    count: sessions.length,
+    expiryBufferDays: sessionExpiryBufferDays,
+    sessions: sessions.map((session, index) => ({
+      id: index + 1,
+      name: session.name,
+      nearExpiry: session.nearExpiry,
+      expiresAt: session.expiresAt ? new Date(session.expiresAt).toISOString() : null
+    }))
+  };
 }
 
 async function launchBrowser() {
@@ -184,17 +299,16 @@ async function launchBrowser() {
   });
 }
 
-async function createPage(browser: Browser) {
+async function createPage(browser: Browser, session: InstagramSession) {
   const contextOptions: BrowserContextOptions = {
     locale: "en-US",
     userAgent: defaultUserAgent,
     viewport: { width: 1280, height: 900 },
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" }
   };
-  const state = await storageState();
-  if (state) contextOptions.storageState = state;
+  if (session.storageState) contextOptions.storageState = session.storageState;
   const context = await browser.newContext(contextOptions);
-  return context.newPage();
+  return { context, page: await context.newPage() };
 }
 
 async function collectPostLinks(page: Page, targetCount: number) {
@@ -453,15 +567,16 @@ function cutoffDate(input: InstagramScrapeInput) {
   return date;
 }
 
-export async function runInstagramScrape(input: InstagramScrapeInput) {
-  const normalized = normalizeQuery(input.query);
-  const maxResults = Math.max(1, Math.min(50, Number(input.maxResults) || 10));
-  const candidateCount = normalized.mode === "post" ? 1 : Math.min(60, Math.max(maxResults * 4, 16));
-  const cutoff = cutoffDate(input);
-
-  const browser = await launchBrowser();
+async function scrapeWithSession(
+  browser: Browser,
+  session: InstagramSession,
+  normalized: NormalizedQuery,
+  maxResults: number,
+  candidateCount: number,
+  cutoff: Date
+) {
+  const { context, page } = await createPage(browser, session);
   try {
-    const page = await createPage(browser);
     await page.goto(normalized.startUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
 
     const fallbackProfile = normalized.mode === "profile" ? await profileInfo(page) : undefined;
@@ -494,6 +609,38 @@ export async function runInstagramScrape(input: InstagramScrapeInput) {
       query: normalized.label,
       results: results.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
     };
+  } finally {
+    await context.close();
+  }
+}
+
+export async function runInstagramScrape(input: InstagramScrapeInput) {
+  const normalized = normalizeQuery(input.query);
+  const maxResults = Math.max(1, Math.min(50, Number(input.maxResults) || 10));
+  const candidateCount = normalized.mode === "post" ? 1 : Math.min(60, Math.max(maxResults * 4, 16));
+  const cutoff = cutoffDate(input);
+  const sessions = orderedSessions(await loadStorageSessions());
+
+  const browser = await launchBrowser();
+  let lastResult: { query: string; results: InstagramPost[] } = { query: normalized.label, results: [] };
+  let lastError: unknown = null;
+  let successfulAttempt = false;
+
+  try {
+    for (const session of sessions) {
+      try {
+        const result = await scrapeWithSession(browser, session, normalized, maxResults, candidateCount, cutoff);
+        successfulAttempt = true;
+        lastResult = result;
+        if (result.results.length > 0) return result;
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+
+    if (!successfulAttempt && lastError) throw lastError;
+    return lastResult;
   } finally {
     await browser.close();
   }
