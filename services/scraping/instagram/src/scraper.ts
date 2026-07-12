@@ -107,11 +107,16 @@ function normalizeQuery(query: string): NormalizedQuery {
       const username = profileMatch[1];
       return { mode: "profile", label: `@${username}`, startUrl: `${instagramHost}/${username}/` };
     }
+    const tagMatch = cleanPath.match(/^\/explore\/tags\/([^/]+)/i);
+    if (tagMatch) {
+      const tag = decodeURIComponent(tagMatch[1]).replace(/[^A-Za-z0-9_]/g, "");
+      if (tag) return { mode: "hashtag", label: `#${tag}`, startUrl: `${instagramHost}/explore/tags/${encodeURIComponent(tag)}/`, tag };
+    }
     throw new Error("Use an Instagram profile, hashtag, post, or reel URL.");
   }
 
   if (raw.startsWith("#")) {
-    const tag = raw.replace(/^#+/, "").trim();
+    const tag = raw.replace(/^#+/, "").replace(/[^A-Za-z0-9_]/g, "");
     if (!tag) throw new Error("Enter a hashtag.");
     return { mode: "hashtag", label: `#${tag}`, startUrl: `${instagramHost}/explore/tags/${encodeURIComponent(tag)}/`, tag };
   }
