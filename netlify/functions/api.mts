@@ -1,7 +1,7 @@
 import type { Config, Context } from "@netlify/functions";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import { createTelegramHttpServer } from "../../integrations/telegram/src/server.ts";
+import { createTelegramHttpServer } from "../../services/messaging/telegram/src/server.ts";
 
 type LocalServer = {
   origin: string;

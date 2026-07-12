@@ -7,11 +7,14 @@ dist/
 .env.*
 !.env.example
 
-integrations/*/node_modules/
-integrations/*/.env
-integrations/*/.env.*
-!integrations/*/.env.example
-!integrations/*/.env.docker.example
-integrations/*/data/
-integrations/*/logs/
-integrations/*/*.session
+services/**/node_modules/
+services/**/.env
+services/**/.env.*
+!services/**/.env.example
+!services/**/.env.docker.example
+services/**/data/
+services/**/logs/
+services/**/*.session
+
+# Legacy local service path kept ignored while code lives in services/.
+integrations/

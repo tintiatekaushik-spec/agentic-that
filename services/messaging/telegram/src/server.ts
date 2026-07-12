@@ -43,6 +43,7 @@ const telegramRoot = path.resolve(moduleDir, "..");
 const telegramPublicDir = path.join(telegramRoot, "public");
 const frontendDistDirs = [
   path.resolve(process.cwd(), "dist"),
+  path.resolve(telegramRoot, "..", "..", "..", "dist"),
   path.resolve(telegramRoot, "..", "..", "dist")
 ];
 const publicFiles = new Map([

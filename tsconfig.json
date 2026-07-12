@@ -13,6 +13,6 @@
   },
   "include": [
     "netlify/functions/**/*.mts",
-    "integrations/telegram/src/**/*.ts"
+    "services/messaging/telegram/src/**/*.ts"
   ]
 }

@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "integrations:telegram": "npm --prefix integrations/telegram run server",
-    "integrations:telegram:install": "npm --prefix integrations/telegram install",
+    "services:telegram": "npm --prefix services/messaging/telegram run server",
+    "services:telegram:install": "npm --prefix services/messaging/telegram install",
+    "integrations:telegram": "npm run services:telegram",
+    "integrations:telegram:install": "npm run services:telegram:install",
     "integrations:install": "npm run integrations:telegram:install",
     "telegram:dashboard": "npm run integrations:telegram",
     "dev:telegram": "concurrently -k -n site,telegram -c cyan,green \"npm run dev\" \"npm run telegram:dashboard\"",
