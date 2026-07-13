@@ -58,6 +58,27 @@ const dateFromRecentDays = (days) => {
   return date.toISOString().slice(0, 10);
 };
 
+const publicInstagramUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "https://www.instagram.com/";
+
+  try {
+    const url = new URL(raw.startsWith("http") ? raw : `https://www.instagram.com${raw.startsWith("/") ? raw : `/${raw}`}`);
+    url.protocol = "https:";
+    url.hostname = "www.instagram.com";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "https://www.instagram.com/";
+  }
+};
+
+const openPostInBrowser = (event, postUrl) => {
+  event.preventDefault();
+  window.open(publicInstagramUrl(postUrl), "_blank", "noopener,noreferrer");
+};
+
 const exportColumns = [
   "rank",
   "thumbnail_url",
@@ -289,7 +310,17 @@ function InstagramScraper() {
                       <td>
                         <strong>{post.display_name || post.username || "Unknown"}</strong>
                       </td>
-                      <td><a href={post.post_url} target="_blank" rel="noopener noreferrer">Open post</a></td>
+                      <td>
+                        <a
+                          href={publicInstagramUrl(post.post_url)}
+                          target="_blank"
+                          rel="external noopener noreferrer"
+                          referrerPolicy="no-referrer"
+                          onClick={(event) => openPostInBrowser(event, post.post_url)}
+                        >
+                          Open post
+                        </a>
+                      </td>
                       <td>{formatNumber(post.comments_count)}</td>
                       <td>{formatNumber(post.likes)}</td>
                       <td>{formatNumber(post.follower_count)}</td>
