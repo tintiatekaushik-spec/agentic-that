@@ -20,6 +20,8 @@ export async function POST(req) {
     return response;
   } catch (error) {
     console.error("Login failed", error);
-    return Response.json({ error: "Login failed", step }, { status: 500 });
+    const detail = error instanceof Error ? error.message : String(error);
+    const safeDetail = detail.replace(/postgres(?:ql)?:\/\/[^\s)]+/gi, "postgres://<redacted>");
+    return Response.json({ error: "Login failed", step, detail: safeDetail }, { status: 500 });
   }
 }
