@@ -404,7 +404,7 @@ h1 {
   display: block;
   object-fit: contain;
   object-position: center;
-  background: url("./public/scrape-globe-device-poster.png") center / contain no-repeat;
+  background: url("/scrape-globe-device-poster.png") center / contain no-repeat;
   filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.52));
   pointer-events: none;
 }

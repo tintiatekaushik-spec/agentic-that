@@ -1,5 +1,6 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
-import "./InstagramScraper.css";
 
 const API_URL = "/api/scraping/instagram";
 const DEFAULT_MAX_RESULTS = 10;

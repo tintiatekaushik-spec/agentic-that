@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.next/
 .netlify/
 *.log
 
@@ -8,6 +9,7 @@ dist/
 !.env.example
 
 services/**/node_modules/
+services/**/.next/
 services/**/.env
 services/**/.env.*
 !services/**/.env.example
@@ -18,3 +20,4 @@ services/**/*.session
 services/**/output/
 services/**/sessions/
 services/**/account_config/sessions/
+public/console/

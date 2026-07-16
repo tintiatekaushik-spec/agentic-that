@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "dist"
+  publish = ".next"
   functions = "netlify/functions"
 
 [build.environment]
@@ -15,9 +15,4 @@
 [[redirects]]
   from = "/console/*"
   to = "/console/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
   status = 200

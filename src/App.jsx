@@ -1,19 +1,20 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
-import Video from "./public/Hero_video.mp4";
-import FacebookLogo from "./public/facebook-logo.svg";
-import GoogleLogo from "./public/google-logo.svg";
-import GoogleMapsLogo from "./public/google-maps-logo.svg";
-import InstagramLogo from "./public/instagram-logo.svg";
-import LinkedInLogo from "./public/linkedin-logo.png";
-import ScrapeGlobeDevicePoster from "./public/scrape-globe-device-poster.png";
-import ScrapeGlobeDeviceVideo from "./public/scrape-globe-device.mp4";
-import TelegramLogo from "./public/telegram-logo.svg";
-import WhatsAppLogo from "./public/whatsapp-logo.svg";
-import XLogo from "./public/x-logo.svg";
-import YouTubeLogo from "./public/youtube-logo.svg";
 import { serviceEndpoints } from "./services";
-import InstagramScraper from "./InstagramScraper";
-import "./App.css";
+
+const Video = "/Hero_video.mp4";
+const FacebookLogo = "/facebook-logo.svg";
+const GoogleLogo = "/google-logo.svg";
+const GoogleMapsLogo = "/google-maps-logo.svg";
+const InstagramLogo = "/instagram-logo.svg";
+const LinkedInLogo = "/linkedin-logo.png";
+const ScrapeGlobeDevicePoster = "/scrape-globe-device-poster.png";
+const ScrapeGlobeDeviceVideo = "/scrape-globe-device.mp4";
+const TelegramLogo = "/telegram-logo.svg";
+const WhatsAppLogo = "/whatsapp-logo.svg";
+const XLogo = "/x-logo.svg";
+const YouTubeLogo = "/youtube-logo.svg";
 
 const navItems = ["Marketplace", "Services", "Solutions", "Docs", "Company"];
 
@@ -38,7 +39,7 @@ const services = [
 
 const automationPlatforms = [
   { name: "Telegram", logo: TelegramLogo, action: "Console", enabled: true },
-  { name: "WhatsApp", logo: WhatsAppLogo, action: "Coming soon" },
+  { name: "WhatsApp", logo: WhatsAppLogo, action: "Console", enabled: true },
 ];
 
 const scraperPlatforms = [
@@ -88,7 +89,6 @@ function ScrapeIntelligenceCard({ service }) {
           aria-hidden="true"
           autoPlay
           muted
-          defaultMuted
           loop
           poster={ScrapeGlobeDevicePoster}
           playsInline
@@ -121,7 +121,7 @@ function PlatformTile({ platform, onOpen }) {
   );
 
   return isEnabled ? (
-    <button className="platform-tile enabled" type="button" onClick={onOpen}>
+    <button className="platform-tile enabled" type="button" onClick={() => onOpen?.(platform)}>
       {content}
     </button>
   ) : (
@@ -154,10 +154,6 @@ function IntegrationServiceSection({ kicker, title, description, platforms, onOp
 }
 
 function App() {
-  if (window.location.pathname.startsWith("/scraper/instagram")) {
-    return <InstagramScraper />;
-  }
-
   const [title, setTitle] = useState("");
   const [showCursor, setShowCursor] = useState(true);
 
@@ -215,6 +211,26 @@ function App() {
     window.location.href = serviceEndpoints.instagramScraper.consoleUrl;
   };
 
+  const openWhatsAppDashboard = () => {
+    if (!serviceEndpoints.whatsapp.dashboardUrl) {
+      window.alert(
+        "WhatsApp console is not configured. Set VITE_WHATSAPP_DASHBOARD_URL to the deployed WhatsApp service URL."
+      );
+      return;
+    }
+
+    window.location.href = serviceEndpoints.whatsapp.dashboardUrl;
+  };
+
+  const openMessagingDashboard = (platform) => {
+    if (platform.name === "WhatsApp") {
+      openWhatsAppDashboard();
+      return;
+    }
+
+    openTelegramDashboard();
+  };
+
   return (
     <main className="site-shell">
       <nav className="nav-bar" aria-label="Main navigation">
@@ -260,7 +276,6 @@ function App() {
     className="work-panel-video"
     autoPlay
     muted
-    defaultMuted
     loop
     playsInline
     preload="auto"
@@ -303,9 +318,9 @@ function App() {
             <IntegrationServiceSection
               kicker="Messaging Automation"
               title="Chat Workflow Automation"
-              description="Automate account workflows, contacts, campaigns, and outbound messages across chat channels. Telegram is live now, and WhatsApp is reserved for the next integration."
+              description="Automate account workflows, contacts, campaigns, templates, inbox replies, and outbound messages across Telegram and WhatsApp."
               platforms={automationPlatforms}
-              onOpen={openTelegramDashboard}
+              onOpen={openMessagingDashboard}
             />
 
             <IntegrationServiceSection
