@@ -53,7 +53,7 @@
   gap: 10px;
 }
 
-button {
+.site-shell button {
   border: 0;
   font: inherit;
   cursor: pointer;
@@ -110,7 +110,7 @@ button {
   gap: clamp(44px, 7vw, 108px);
 }
 
-h1 {
+.site-shell h1 {
   margin: 0;
   color: #ffffff;
   font-size: clamp(52px, 5.7vw, 82px);
@@ -610,7 +610,7 @@ h1 {
     padding-top: 34px;
   }
 
-  h1 {
+  .site-shell h1 {
     font-size: clamp(46px, 15vw, 66px);
   }
 
