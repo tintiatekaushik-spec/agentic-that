@@ -1,6 +1,6 @@
-import { requireUser } from "@/lib/auth";
-import { getBusiness } from "@/lib/data";
-import Nav from "@/components/Nav";
+import { requireUser } from "@whatsapp/lib/auth";
+import { getBusiness } from "@whatsapp/lib/data";
+import Nav from "@whatsapp/components/Nav";
 
 export default async function AdminLayout({ children }) {
   const user = await requireUser();

@@ -1,5 +1,5 @@
-import App from "../src/App.jsx";
+import PlatformHome from "@platform/PlatformHome";
 
 export default function HomePage() {
-  return <App />;
+  return <PlatformHome />;
 }

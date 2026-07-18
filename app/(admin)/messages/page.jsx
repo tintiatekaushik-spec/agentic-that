@@ -1,7 +1,7 @@
-import { requireUser } from "@/lib/auth";
-import { getBusiness, listContactThreads, listMessages } from "@/lib/data";
-import { metaListPhoneNumbers } from "@/lib/wa/provider";
-import MessageCenter from "@/components/MessageCenter";
+import { requireUser } from "@whatsapp/lib/auth";
+import { getBusiness, listContactThreads, listMessages } from "@whatsapp/lib/data";
+import { metaListPhoneNumbers } from "@whatsapp/lib/wa/provider";
+import MessageCenter from "@whatsapp/components/MessageCenter";
 
 export const metadata = { title: "Messages — Tinitiate WA" };
 

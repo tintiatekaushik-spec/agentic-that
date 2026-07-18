@@ -1,5 +1,5 @@
-import { getSql } from "@/lib/db";
-import { verifyPassword, createSession, sessionCookieHeader } from "@/lib/auth";
+import { getSql } from "@whatsapp/lib/db";
+import { verifyPassword, createSession, sessionCookieHeader } from "@whatsapp/lib/auth";
 
 export async function POST(req) {
   try {

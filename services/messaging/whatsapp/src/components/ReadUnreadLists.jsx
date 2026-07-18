@@ -1,34 +1,31 @@
 import Link from "next/link";
-import { timeAgo } from "@/lib/format";
+import { timeAgo } from "@whatsapp/lib/format";
 
-// Two side-by-side (stacked on mobile) lists: contacts who have replied vs
-// contacts who were messaged but have gone quiet.
-export default function ResponseLists({ responded, unresponded }) {
+// Two side-by-side (stacked on mobile) lists: chats with unseen replies vs
+// chats whose replies have all been read. Mirrors ResponseLists.
+export default function ReadUnreadLists({ unread, read }) {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       <ContactList
-        title="Responded"
-        icon="✅"
-        contacts={responded}
-        empty="No replies yet."
-        renderMeta={(c) => c.last_reply}
-        renderTime={(c) => c.last_reply_at}
-        href="/dashboard/responses?tab=responded"
+        title="Unread"
+        icon="📩"
+        contacts={unread}
+        empty="No unread replies — inbox zero."
+        href="/dashboard/inbox?tab=unread"
+        showCount
       />
       <ContactList
-        title="Not responded"
-        icon="⏳"
-        contacts={unresponded}
-        empty="Everyone you've messaged has replied."
-        renderMeta={(c) => c.last_outbound}
-        renderTime={(c) => c.last_outbound_at}
-        href="/dashboard/responses?tab=not-responded"
+        title="Read"
+        icon="📖"
+        contacts={read}
+        empty="Nothing read yet."
+        href="/dashboard/inbox?tab=read"
       />
     </div>
   );
 }
 
-function ContactList({ title, icon, contacts, empty, renderMeta, renderTime, href }) {
+function ContactList({ title, icon, contacts, empty, href, showCount }) {
   return (
     <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <Link href={href} className="mb-2 flex items-center gap-2 hover:underline">
@@ -51,10 +48,17 @@ function ContactList({ title, icon, contacts, empty, renderMeta, renderTime, hre
                     <p className="truncate text-sm font-medium">{c.name}</p>
                     <p className="text-xs text-slate-400">{c.phone}</p>
                   </div>
-                  <span className="shrink-0 text-xs text-slate-400">{timeAgo(renderTime(c))}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {showCount && c.unread_count > 0 && (
+                      <span className="rounded-full bg-[var(--brand)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {c.unread_count}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400">{timeAgo(c.last_reply_at)}</span>
+                  </div>
                 </div>
-                {renderMeta(c) && (
-                  <p className="mt-1 truncate text-xs text-slate-500">{renderMeta(c)}</p>
+                {c.last_reply && (
+                  <p className="mt-1 truncate text-xs text-slate-500">{c.last_reply}</p>
                 )}
               </Link>
             </li>

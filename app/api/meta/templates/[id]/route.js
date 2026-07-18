@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaEditTemplate, metaTemplatesConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaEditTemplate, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
 
 // Edit an existing WhatsApp template on Meta. Body: { category?, bodyText,
 // headerText?, headerImageHandle?, footerText?, buttons? }. Name and language

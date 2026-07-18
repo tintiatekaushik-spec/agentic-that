@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MessageBubble from "./MessageBubble";
 import { useMounted } from "./useMounted";
-import { timeAgo, formatDayClock } from "@/lib/format";
+import { timeAgo, formatDayClock } from "@whatsapp/lib/format";
 
 // WhatsApp-themed message center with four layouts, like a WA Web workspace:
 //   Split   — chat list + one open conversation (WhatsApp Web style)

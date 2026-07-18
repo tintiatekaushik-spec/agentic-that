@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { listGroups } from "@/lib/data";
+import { requireUser } from "@whatsapp/lib/auth";
+import { listGroups } from "@whatsapp/lib/data";
 import CreateGroup from "./CreateGroup";
 
 export const metadata = { title: "Groups — Tinitiate WA" };

@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaUploadTemplateImage, metaConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaUploadTemplateImage, metaConfigured } from "@whatsapp/lib/wa/provider";
 
 const MAX_BYTES = 5 * 1024 * 1024; // Meta's limit for template header images
 

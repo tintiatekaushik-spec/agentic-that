@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import TemplatesCard from "@/components/TemplatesCard";
+import TemplatesCard from "@whatsapp/components/TemplatesCard";
 
 export default function SettingsForm({ business, templates, provider }) {
   const router = useRouter();

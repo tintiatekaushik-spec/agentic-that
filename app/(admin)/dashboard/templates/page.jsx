@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { metaGetTemplates, metaTemplatesConfigured } from "@/lib/wa/provider";
-import MetaTemplatesManager from "@/components/MetaTemplatesManager";
+import { requireUser } from "@whatsapp/lib/auth";
+import { metaGetTemplates, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
+import MetaTemplatesManager from "@whatsapp/components/MetaTemplatesManager";
 
 export const metadata = { title: "WhatsApp templates — Tinitiate WA" };
 

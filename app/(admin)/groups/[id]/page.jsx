@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@whatsapp/lib/auth";
 import {
   getGroup,
   listGroupMembers,
   listContactsNotInGroup,
   listTemplates,
-} from "@/lib/data";
-import { metaListPhoneNumbers, metaTemplatesConfigured } from "@/lib/wa/provider";
+} from "@whatsapp/lib/data";
+import { metaListPhoneNumbers, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
 import GroupDetail from "./GroupDetail";
 
 export async function generateMetadata({ params }) {

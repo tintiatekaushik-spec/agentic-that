@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { watiGetTemplates, watiConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { watiGetTemplates, watiConfigured } from "@whatsapp/lib/wa/provider";
 
 // Lists WATI message templates. ?all=1 returns every template (incl. pending /
 // rejected) so the UI can explain why broadcasting may be blocked; otherwise

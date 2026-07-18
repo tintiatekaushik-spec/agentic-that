@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { timeAgo } from "@/lib/format";
+import { timeAgo } from "@whatsapp/lib/format";
 import SendTemplateModal from "./SendTemplateModal";
 
 // Full-page version of the dashboard's Responded / Not-responded lists, with

@@ -1,6 +1,6 @@
-import { requireUser } from "@/lib/auth";
-import { listContactThreads } from "@/lib/data";
-import { metaListPhoneNumbers, metaTemplatesConfigured } from "@/lib/wa/provider";
+import { requireUser } from "@whatsapp/lib/auth";
+import { listContactThreads } from "@whatsapp/lib/data";
+import { metaListPhoneNumbers, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
 import NotificationCenter from "./NotificationCenter";
 
 export const metadata = { title: "Notification Center — Tinitiate WA" };

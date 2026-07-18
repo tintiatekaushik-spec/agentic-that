@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaGetTemplates, metaCreateTemplate, metaTemplatesConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaGetTemplates, metaCreateTemplate, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
 
 // Meta Cloud API equivalent of /api/wati/templates — lists WhatsApp message
 // templates straight from Meta's Graph API for the active WABA. ?all=1 returns

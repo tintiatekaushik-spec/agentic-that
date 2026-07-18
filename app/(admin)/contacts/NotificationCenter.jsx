@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { timeAgo } from "@/lib/format";
-import SenderSelect from "@/components/SenderSelect";
+import { timeAgo } from "@whatsapp/lib/format";
+import SenderSelect from "@whatsapp/components/SenderSelect";
 
 const DEFAULT_BUTTONS = ["Sales", "Support", "Catalog"];
 

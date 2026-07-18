@@ -1,6 +1,6 @@
-import { getCurrentUser } from "@/lib/auth";
-import { watiGetContacts, watiConfigured, normalizeWaNumber } from "@/lib/wa/provider";
-import { importContacts } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { watiGetContacts, watiConfigured, normalizeWaNumber } from "@whatsapp/lib/wa/provider";
+import { importContacts } from "@whatsapp/lib/data";
 
 // Import WATI contacts into the CRM. Body: { phones?: string[] }
 //   - no phones  -> import all new contacts

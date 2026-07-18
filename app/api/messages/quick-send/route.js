@@ -1,8 +1,8 @@
-import { getSql } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { getBusiness } from "@/lib/data";
-import { sendToContact, sendTemplateToContact, renderTemplate } from "@/lib/wa/messaging";
-import { normalizeWaNumber, metaGetTemplates, metaTemplatesConfigured } from "@/lib/wa/provider";
+import { getSql } from "@whatsapp/lib/db";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getBusiness } from "@whatsapp/lib/data";
+import { sendToContact, sendTemplateToContact, renderTemplate } from "@whatsapp/lib/wa/messaging";
+import { normalizeWaNumber, metaGetTemplates, metaTemplatesConfigured } from "@whatsapp/lib/wa/provider";
 
 // Meta's onboarding sample templates — never auto-pick these as the opener
 // (hello_world only works on the public test numbers anyway).

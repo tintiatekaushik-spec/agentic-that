@@ -2,13 +2,22 @@
 
 Live scraping service for Instagram profile, hashtag, and post URL inputs.
 
+```text
+console/src/   Instagram console UI and styles
+src/           scraper API, runtime, and storage code
+scripts/       service maintenance scripts
+```
+
 ## Local
 
 ```bash
-npm run dev:instagram
+npm run dev
 ```
 
 Open `http://127.0.0.1:5173/scraper/instagram`.
+
+This command also starts the main website/WhatsApp and Telegram services. The
+legacy `npm run dev:instagram` command is kept as an alias to the same launcher.
 
 ## Deploy
 

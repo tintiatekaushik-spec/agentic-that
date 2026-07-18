@@ -50,7 +50,10 @@ const publicFiles = new Map([
   ["/console", { file: "index.html", type: "text/html; charset=utf-8" }],
   ["/console/", { file: "index.html", type: "text/html; charset=utf-8" }],
   ["/console/app.js", { file: "app.js", type: "text/javascript; charset=utf-8" }],
-  ["/console/styles.css", { file: "styles.css", type: "text/css; charset=utf-8" }]
+  ["/console/styles.css", { file: "styles.css", type: "text/css; charset=utf-8" }],
+  ["/console/assets/guide/telegram-phone-entry.png", { file: "assets/guide/telegram-phone-entry.png", type: "image/png" }],
+  ["/console/assets/guide/telegram-confirmation-redacted.png", { file: "assets/guide/telegram-confirmation-redacted.png", type: "image/png" }],
+  ["/console/assets/guide/telegram-api-credentials-redacted.png", { file: "assets/guide/telegram-api-credentials-redacted.png", type: "image/png" }]
 ]);
 type TelegramListenerClient = Awaited<ReturnType<typeof listenForAccount>>;
 

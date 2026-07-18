@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import MessageBubble from "@/components/MessageBubble";
+import MessageBubble from "@whatsapp/components/MessageBubble";
 
 const PHONE_COLORS = ["#128c7e", "#6366f1", "#ea580c", "#db2777"];
 

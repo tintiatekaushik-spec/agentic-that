@@ -107,7 +107,7 @@ async function apiPost(path, body) {
   return data;
 }
 
-function InstagramScraper() {
+function InstagramScraperConsole() {
   const [inputMode, setInputMode] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [maxResults, setMaxResults] = useState(DEFAULT_MAX_RESULTS);
@@ -435,4 +435,4 @@ function InstagramScraper() {
   );
 }
 
-export default InstagramScraper;
+export default InstagramScraperConsole;

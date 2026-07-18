@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getContact, listMessagesAfter } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getContact, listMessagesAfter } from "@whatsapp/lib/data";
 
 // Polled by the open chat window to pick up new messages (e.g. an inbound
 // webhook reply) without a full page reload. ?afterId=<last known message id>.

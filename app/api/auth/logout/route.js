@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { destroySession, clearSessionCookieHeader, COOKIE_NAME } from "@/lib/auth";
+import { destroySession, clearSessionCookieHeader, COOKIE_NAME } from "@whatsapp/lib/auth";
 
 export async function POST() {
   const store = await cookies();

@@ -1,5 +1,5 @@
-import { getSql } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getSql } from "@whatsapp/lib/db";
+import { getCurrentUser } from "@whatsapp/lib/auth";
 
 export async function PATCH(req, { params }) {
   const user = await getCurrentUser();

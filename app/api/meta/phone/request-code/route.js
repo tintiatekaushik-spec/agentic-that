@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaRequestVerificationCode, metaConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaRequestVerificationCode, metaConfigured } from "@whatsapp/lib/wa/provider";
 
 // Kicks off Meta's SMS/voice verification for a phone number id (Meta then
 // sends a code to that number's carrier connection).

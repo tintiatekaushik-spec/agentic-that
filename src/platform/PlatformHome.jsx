@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { serviceEndpoints } from "./services";
+import { serviceEndpoints } from "./service-catalog";
 
 const Video = "/Hero_video.mp4";
 const FacebookLogo = "/facebook-logo.svg";
@@ -153,7 +153,7 @@ function IntegrationServiceSection({ kicker, title, description, platforms, onOp
   );
 }
 
-function App() {
+function PlatformHome() {
   const [title, setTitle] = useState("");
   const [showCursor, setShowCursor] = useState(true);
 
@@ -351,4 +351,4 @@ function App() {
   );
 }
 
-export default App;
+export default PlatformHome;

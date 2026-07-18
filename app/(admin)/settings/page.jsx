@@ -1,7 +1,7 @@
-import { requireUser } from "@/lib/auth";
-import { getBusiness, listTemplates } from "@/lib/data";
+import { requireUser } from "@whatsapp/lib/auth";
+import { getBusiness, listTemplates } from "@whatsapp/lib/data";
 import SettingsForm from "./SettingsForm";
-import MetaPhoneVerify from "@/components/MetaPhoneVerify";
+import MetaPhoneVerify from "@whatsapp/components/MetaPhoneVerify";
 
 export const metadata = { title: "Settings — Tinitiate WA" };
 

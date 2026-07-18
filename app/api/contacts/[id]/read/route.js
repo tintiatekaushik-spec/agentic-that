@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getContact, markContactRead } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getContact, markContactRead } from "@whatsapp/lib/data";
 
 // Fired when the business user opens a chat — advances the contact's read
 // marker so their replies stop counting as unread.

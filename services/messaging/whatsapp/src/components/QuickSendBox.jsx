@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import SenderSelect from "@/components/SenderSelect";
+import SenderSelect from "@whatsapp/components/SenderSelect";
 
 // Accessory: type any WhatsApp number + message and send immediately, without
 // first adding the number as a contact. Known contacts get the typed text;

@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { listBusinessMessagesAfter } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { listBusinessMessagesAfter } from "@whatsapp/lib/data";
 
 // Polled by the Message center — returns every message (any contact) newer
 // than ?afterId, so one request keeps all on-screen chats current. afterId=0

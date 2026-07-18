@@ -1,6 +1,6 @@
-import { getSql } from "@/lib/db";
-import { recordInbound } from "@/lib/wa/messaging";
-import { normalizeWaNumber } from "@/lib/wa/provider";
+import { getSql } from "@whatsapp/lib/db";
+import { recordInbound } from "@whatsapp/lib/wa/messaging";
+import { normalizeWaNumber } from "@whatsapp/lib/wa/provider";
 
 // Meta WhatsApp Cloud API posts events here. Configure in Meta for Developers >
 // WhatsApp > Configuration > Webhook:

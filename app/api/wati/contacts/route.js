@@ -1,6 +1,6 @@
-import { getCurrentUser } from "@/lib/auth";
-import { watiGetContacts, watiConfigured, normalizeWaNumber } from "@/lib/wa/provider";
-import { existingPhoneSet } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { watiGetContacts, watiConfigured, normalizeWaNumber } from "@whatsapp/lib/wa/provider";
+import { existingPhoneSet } from "@whatsapp/lib/data";
 
 // Returns the business's primary contacts pulled live from WATI, each flagged
 // with whether it already exists in the CRM (inCrm).

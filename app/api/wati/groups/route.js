@@ -1,7 +1,7 @@
-import { getSql } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { importContacts } from "@/lib/data";
-import { normalizeWaNumber, watiConfigured, watiGetContacts } from "@/lib/wa/provider";
+import { getSql } from "@whatsapp/lib/db";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { importContacts } from "@whatsapp/lib/data";
+import { normalizeWaNumber, watiConfigured, watiGetContacts } from "@whatsapp/lib/wa/provider";
 
 // Create a CRM group directly from WATI contacts.
 // Body:

@@ -1,6 +1,6 @@
-import { getSql } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { normalizeWaNumber } from "@/lib/wa/provider";
+import { getSql } from "@whatsapp/lib/db";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { normalizeWaNumber } from "@whatsapp/lib/wa/provider";
 
 export async function POST(req) {
   const user = await getCurrentUser();

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { getBusiness, respondedContacts, unrespondedContacts } from "@/lib/data";
-import ResponsesList from "@/components/ResponsesList";
+import { requireUser } from "@whatsapp/lib/auth";
+import { getBusiness, respondedContacts, unrespondedContacts } from "@whatsapp/lib/data";
+import ResponsesList from "@whatsapp/components/ResponsesList";
 
 export const metadata = { title: "Responses — Tinitiate WA" };
 

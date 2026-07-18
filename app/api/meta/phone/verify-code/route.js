@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaVerifyCode, metaGetPhoneNumberStatus, metaConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaVerifyCode, metaGetPhoneNumberStatus, metaConfigured } from "@whatsapp/lib/wa/provider";
 
 // Submits the code Meta sent (via request-code) to confirm the number, then
 // returns its fresh status.

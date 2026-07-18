@@ -1,6 +1,6 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getBusiness, getGroup, listGroupMembers, listTemplates } from "@/lib/data";
-import { sendToContact, sendTemplateToContact, sendButtonsToContact, renderTemplate } from "@/lib/wa/messaging";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getBusiness, getGroup, listGroupMembers, listTemplates } from "@whatsapp/lib/data";
+import { sendToContact, sendTemplateToContact, sendButtonsToContact, renderTemplate } from "@whatsapp/lib/wa/messaging";
 
 // Broadcast to every member of a group — one individual DM each.
 //

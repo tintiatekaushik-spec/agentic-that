@@ -172,27 +172,28 @@ This starts one Telegram listener for each account already connected when the wo
 
 ## Daily Local Workflow
 
-Use two terminals:
+From the AgenticThat repository root, one command starts the website/WhatsApp,
+Telegram, and Instagram services together:
 
 ```bash
-# Terminal 1
-npm run server
+npm run dev
 ```
 
-```bash
-# Terminal 2, optional but needed for incoming replies
-npm run listen
-```
+The launcher selects free ports, prints every local URL, and stops all services
+together when you press `Ctrl+C`. Telegram background listeners are started by
+the Telegram API service, so a second terminal is not required.
 
-Then use the browser at:
+Default local URLs:
 
 ```text
-http://127.0.0.1:8787
+Website + WhatsApp: http://127.0.0.1:5173
+Telegram:           http://127.0.0.1:8787/console
+Instagram:          http://127.0.0.1:5173/scraper/instagram
 ```
 
 The app does not open inside VS Code. VS Code is only the editor/terminal. The dashboard itself opens in Chrome, Edge, Firefox, or another browser.
 
-If frontend files changed, restart `npm run server` and hard refresh the browser with `Ctrl + F5`.
+If frontend files changed, the Next.js development server reloads them automatically.
 
 ## Docker Compose Workflow
 

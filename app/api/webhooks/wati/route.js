@@ -1,6 +1,6 @@
-import { getSql } from "@/lib/db";
-import { recordInbound } from "@/lib/wa/messaging";
-import { normalizeWaNumber } from "@/lib/wa/provider";
+import { getSql } from "@whatsapp/lib/db";
+import { recordInbound } from "@whatsapp/lib/wa/messaging";
+import { normalizeWaNumber } from "@whatsapp/lib/wa/provider";
 
 // WATI posts events here. Configure the URL in WATI dashboard:
 //   https://<your-host>/api/webhooks/wati?token=<WATI_WEBHOOK_SECRET>

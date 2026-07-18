@@ -1,11 +1,11 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getBusiness, getContact, listTemplates, markContactRead, lastInboundPhoneId } from "@/lib/data";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getBusiness, getContact, listTemplates, markContactRead, lastInboundPhoneId } from "@whatsapp/lib/data";
 import {
   sendToContact,
   sendTemplateToContact,
   sendButtonsToContact,
   renderTemplate,
-} from "@/lib/wa/messaging";
+} from "@whatsapp/lib/wa/messaging";
 
 export async function POST(req) {
   const user = await getCurrentUser();

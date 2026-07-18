@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@whatsapp/lib/auth";
 import LoginForm from "./LoginForm";
 
 const textFromCodes = (...codes) => String.fromCharCode(...codes);

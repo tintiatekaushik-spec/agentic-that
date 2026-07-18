@@ -1,8 +1,11 @@
 node_modules/
 dist/
 .next/
+.next-dev-*.tsconfig.json
+.next-build.tsconfig.json
 .netlify/
 *.log
+*.tsbuildinfo
 
 .env
 .env.*

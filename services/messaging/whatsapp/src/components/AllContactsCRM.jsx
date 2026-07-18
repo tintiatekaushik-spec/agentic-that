@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { timeAgo } from "@/lib/format";
+import { timeAgo } from "@whatsapp/lib/format";
 
 // Full contact directory, searchable — the "CRM" view: every contact in one
 // place regardless of recent activity, unlike the windowed Eagle Eye feed.

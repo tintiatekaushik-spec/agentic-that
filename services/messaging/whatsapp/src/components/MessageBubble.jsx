@@ -1,6 +1,6 @@
 "use client";
 
-import { formatClock } from "@/lib/format";
+import { formatClock } from "@whatsapp/lib/format";
 import { useMounted } from "./useMounted";
 
 // WhatsApp-styled chat bubble: green for outgoing, white for incoming, with a

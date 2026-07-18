@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@whatsapp/lib/auth";
 import {
   getBusiness,
   eagleEye,
@@ -11,20 +11,20 @@ import {
   unreadContacts,
   readContacts,
   messageStatusSummary,
-} from "@/lib/data";
-import { timeAgo } from "@/lib/format";
-import { metaGetTemplates, metaTemplatesConfigured, metaListPhoneNumbers } from "@/lib/wa/provider";
+} from "@whatsapp/lib/data";
+import { timeAgo } from "@whatsapp/lib/format";
+import { metaGetTemplates, metaTemplatesConfigured, metaListPhoneNumbers } from "@whatsapp/lib/wa/provider";
 // WATI CRM is no longer used for this project — kept commented (not deleted)
 // in case it's needed again; see components/WatiContactsBox.jsx.
-// import WatiContactsBox from "@/components/WatiContactsBox";
-import QuickSendBox from "@/components/QuickSendBox";
-import TemplatesCard from "@/components/TemplatesCard";
-import MessageStatCards from "@/components/MessageStatCards";
-import ResponseLists from "@/components/ResponseLists";
-import ReadUnreadLists from "@/components/ReadUnreadLists";
-import AllContactsCRM from "@/components/AllContactsCRM";
-import MetaTemplatesSummary from "@/components/MetaTemplatesSummary";
-import AutoRefresh from "@/components/AutoRefresh";
+// import WatiContactsBox from "@whatsapp/components/WatiContactsBox";
+import QuickSendBox from "@whatsapp/components/QuickSendBox";
+import TemplatesCard from "@whatsapp/components/TemplatesCard";
+import MessageStatCards from "@whatsapp/components/MessageStatCards";
+import ResponseLists from "@whatsapp/components/ResponseLists";
+import ReadUnreadLists from "@whatsapp/components/ReadUnreadLists";
+import AllContactsCRM from "@whatsapp/components/AllContactsCRM";
+import MetaTemplatesSummary from "@whatsapp/components/MetaTemplatesSummary";
+import AutoRefresh from "@whatsapp/components/AutoRefresh";
 
 export const metadata = { title: "Eagle Eye — Tinitiate WA" };
 

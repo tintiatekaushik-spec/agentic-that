@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import SenderSelect from "@/components/SenderSelect";
+import SenderSelect from "@whatsapp/components/SenderSelect";
 
 export default function GroupDetail({ group, members, available, templates, phoneNumbers = [] }) {
   const router = useRouter();

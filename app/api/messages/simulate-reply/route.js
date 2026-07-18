@@ -1,6 +1,6 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getBusiness, getContact } from "@/lib/data";
-import { recordInbound } from "@/lib/wa/messaging";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { getBusiness, getContact } from "@whatsapp/lib/data";
+import { recordInbound } from "@whatsapp/lib/wa/messaging";
 
 // DEV/DEMO ONLY: pretend the customer tapped a button (or sent text). With a
 // real provider this path is the WATI webhook instead. Disabled unless the

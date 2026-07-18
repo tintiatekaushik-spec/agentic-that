@@ -2,7 +2,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@instagram/*": ["services/scraping/instagram/*"],
+      "@platform/*": ["src/platform/*"],
+      "@whatsapp/*": ["services/messaging/whatsapp/src/*"]
     }
   }
 }

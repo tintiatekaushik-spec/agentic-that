@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
-import { getBusiness, getContact, listMessages, listTemplates } from "@/lib/data";
-import { metaListPhoneNumbers } from "@/lib/wa/provider";
+import { requireUser } from "@whatsapp/lib/auth";
+import { getBusiness, getContact, listMessages, listTemplates } from "@whatsapp/lib/data";
+import { metaListPhoneNumbers } from "@whatsapp/lib/wa/provider";
 import Chat from "./Chat";
 
 export async function generateMetadata({ params }) {

@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { metaGetPhoneNumberStatus, metaConfigured } from "@/lib/wa/provider";
+import { getCurrentUser } from "@whatsapp/lib/auth";
+import { metaGetPhoneNumberStatus, metaConfigured } from "@whatsapp/lib/wa/provider";
 
 // Live status for a Meta phone number: ?id=<Phone Number ID> (defaults to
 // META_PHONE_NUMBER_ID if omitted).
