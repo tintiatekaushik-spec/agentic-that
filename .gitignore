@@ -16,7 +16,6 @@ services/**/.next/
 services/**/.env
 services/**/.env.*
 !services/**/.env.example
-!services/**/.env.docker.example
 services/**/data/
 services/**/logs/
 services/**/*.session
@@ -24,3 +23,4 @@ services/**/output/
 services/**/sessions/
 services/**/account_config/sessions/
 public/console/
+/data/

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { serviceEndpoints } from "./service-catalog";
+import AuthModal from "./AuthModal";
 
 const Video = "/Hero_video.mp4";
 const FacebookLogo = "/facebook-logo.svg";
@@ -153,9 +154,13 @@ function IntegrationServiceSection({ kicker, title, description, platforms, onOp
   );
 }
 
-function PlatformHome() {
+function PlatformHome({ initialUser = null, initialAuthMode = "", initialNextPath = "" }) {
   const [title, setTitle] = useState("");
   const [showCursor, setShowCursor] = useState(true);
+  const [user, setUser] = useState(initialUser);
+  const [authOpen, setAuthOpen] = useState(Boolean(initialAuthMode));
+  const [authMode, setAuthMode] = useState(initialAuthMode === "signup" ? "signup" : "login");
+  const [pendingDestination, setPendingDestination] = useState(initialNextPath);
 
   useEffect(() => {
     let current = "";
@@ -196,6 +201,20 @@ function PlatformHome() {
     runAnimation();
   }, []);
 
+  const openAuth = (mode = "login", destination = "") => {
+    setAuthMode(mode);
+    setPendingDestination(destination);
+    setAuthOpen(true);
+  };
+
+  const openProtectedService = (destination) => {
+    if (!user) {
+      openAuth("login", destination);
+      return;
+    }
+    window.location.href = destination;
+  };
+
   const openTelegramDashboard = () => {
     if (!serviceEndpoints.telegram.dashboardUrl) {
       window.alert(
@@ -204,11 +223,11 @@ function PlatformHome() {
       return;
     }
 
-    window.location.href = serviceEndpoints.telegram.dashboardUrl;
+    openProtectedService(serviceEndpoints.telegram.dashboardUrl);
   };
 
   const openInstagramScraper = () => {
-    window.location.href = serviceEndpoints.instagramScraper.consoleUrl;
+    openProtectedService(serviceEndpoints.instagramScraper.consoleUrl);
   };
 
   const openWhatsAppDashboard = () => {
@@ -219,7 +238,7 @@ function PlatformHome() {
       return;
     }
 
-    window.location.href = serviceEndpoints.whatsapp.dashboardUrl;
+    openProtectedService(serviceEndpoints.whatsapp.dashboardUrl);
   };
 
   const openMessagingDashboard = (platform) => {
@@ -229,6 +248,24 @@ function PlatformHome() {
     }
 
     openTelegramDashboard();
+  };
+
+  const handleAuthenticated = (authenticatedUser) => {
+    setUser(authenticatedUser);
+    setAuthOpen(false);
+    window.history.replaceState({}, "", window.location.pathname);
+    if (pendingDestination) window.location.href = pendingDestination;
+  };
+
+  const closeAuth = () => {
+    setAuthOpen(false);
+    setPendingDestination("");
+    window.history.replaceState({}, "", window.location.pathname);
+  };
+
+  const signOut = async () => {
+    await fetch("/api/platform-auth/logout", { method: "POST" });
+    setUser(null);
   };
 
   return (
@@ -247,6 +284,18 @@ function PlatformHome() {
           <button className="ghost-button" type="button">
             Contact
           </button>
+          {user ? (
+            <div className="site-account">
+              <span className="site-account-avatar">{String(user.name || user.email || "A").charAt(0).toUpperCase()}</span>
+              <span className="site-account-copy"><strong>{user.name || "Workspace"}</strong><small>{user.email}</small></span>
+              <button className="site-signout" type="button" onClick={signOut}>Sign out</button>
+            </div>
+          ) : (
+            <>
+              <button className="site-signin" type="button" onClick={() => openAuth("login")}>Sign in</button>
+              <button className="site-create-account" type="button" onClick={() => openAuth("signup")}>Create account</button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -347,6 +396,12 @@ function PlatformHome() {
           </div>
         </div>
       </section>
+      <AuthModal
+        open={authOpen}
+        initialMode={authMode}
+        onClose={closeAuth}
+        onAuthenticated={handleAuthenticated}
+      />
     </main>
   );
 }

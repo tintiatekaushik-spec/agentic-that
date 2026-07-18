@@ -195,55 +195,6 @@ The app does not open inside VS Code. VS Code is only the editor/terminal. The d
 
 If frontend files changed, the Next.js development server reloads them automatically.
 
-## Docker Compose Workflow
-
-Use Docker when you want the app to run with a persistent JSON datastore mounted from `./data`.
-
-1. Copy the Docker env template:
-
-```bash
-cp .env.docker.example .env.docker
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.docker.example .env.docker
-```
-
-2. Fill `.env.docker` with `SESSION_ENCRYPTION_KEY` and `USER_PROVISIONING_KEY`.
-
-Generate the two private keys with:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
-```
-
-3. Start the app:
-
-```bash
-docker compose up --build
-```
-
-Open:
-
-```text
-http://127.0.0.1:8787
-```
-
-Useful Docker commands:
-
-```bash
-docker compose up -d --build
-docker compose logs -f app
-docker compose down
-docker compose down -v
-```
-
-The Docker setup stores backend JSON data in `./data/store.json`. Delete `./data` only when you intentionally want to remove connected Telegram sessions, app users, browser sessions, and backend message history.
-
-If port `8787` is already in use, stop your local `npm run server` process first or change the host port in `docker-compose.yml` from `8787:8787` to another host port, for example `8788:8787`.
-
 ## GitHub Handoff Workflow
 
 When pushing this project to GitHub, commit the code and templates, but never commit local secrets or stored Telegram sessions.
@@ -259,9 +210,6 @@ package.json
 package-lock.json
 README.md
 .env.example
-.env.docker.example
-docker-compose.yml
-Dockerfile
 tsconfig.json
 ```
 
@@ -269,7 +217,6 @@ Do not commit:
 
 ```text
 .env
-.env.docker
 data/store.json
 node_modules/
 logs/

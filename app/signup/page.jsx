@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentPlatformUser } from "@platform/server/auth-store";
 
-export const metadata = { title: "Sign in - AgenticThat" };
+export const metadata = { title: "Create account - AgenticThat" };
 
-export default async function LoginPage() {
+export default async function SignupPage() {
   if (await getCurrentPlatformUser()) redirect("/");
-  redirect("/?auth=login");
+  redirect("/?auth=signup");
 }

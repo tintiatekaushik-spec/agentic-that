@@ -16,8 +16,8 @@ export default function Nav({ businessName }) {
   const router = useRouter();
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    await fetch("/api/whatsapp/auth/logout", { method: "POST" });
+    router.push("/whatsapp/login");
     router.refresh();
   }
 

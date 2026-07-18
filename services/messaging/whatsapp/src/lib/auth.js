@@ -53,10 +53,10 @@ export async function getCurrentUser() {
   return user || null;
 }
 
-// Guard for server components / layouts: redirects to /login when signed out.
+// Guard for WhatsApp server components / layouts.
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/whatsapp/login");
   return user;
 }
 
