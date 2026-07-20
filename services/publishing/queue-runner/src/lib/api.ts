@@ -19,8 +19,8 @@ import type {
   UnifiedPostDestinationInput,
   UserProfile
 } from "../../shared/schema.ts";
+import { publishingAssetUrl, publishingFetch } from "../../../../../lib/publishing-endpoint.ts";
 
-const API_BASE = process.env.NEXT_PUBLIC_PUBLISH_QUEUE_API_URL?.replace(/\/$/, "") ?? "";
 let authToken: string | null = null;
 
 export type AuthResponse = {
@@ -51,12 +51,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Authorization", `Bearer ${authToken}`);
   }
 
-  const requestPath = API_BASE
-    ? API_BASE + path
-    : "/api/publishing" + path.replace(/^\/api/, "");
   let response: Response;
   try {
-    response = await fetch(requestPath, {
+    response = await publishingFetch(path, {
       ...init,
       headers
     });
@@ -88,9 +85,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function assetUrl(url: string) {
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  const assetPath = !API_BASE && url.startsWith("/uploads/") ? `/publishing${url}` : url;
-  return `${API_BASE}${assetPath}`;
+  return publishingAssetUrl(url);
 }
 
 export const api = {

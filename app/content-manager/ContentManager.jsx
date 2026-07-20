@@ -25,6 +25,7 @@ import {
   Zap
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { publishingFetch } from "../../lib/publishing-endpoint";
 
 const PUBLISH_SESSION_KEY = "agenticthat-publish-queue-session";
 const publishPlatforms = ["instagram", "facebook", "x", "youtube", "linkedin"];
@@ -135,7 +136,7 @@ async function publishingRequest(path, token, init = {}) {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
   if (token) headers.set("authorization", "Bearer " + token);
-  const response = await fetch("/api/publishing" + path.replace(/^\/api/, ""), {
+  const response = await publishingFetch(path, {
     ...init,
     headers
   });

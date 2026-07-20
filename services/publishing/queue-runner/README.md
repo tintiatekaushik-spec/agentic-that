@@ -31,6 +31,19 @@ From the repository root:
 npm run dev
 ```
 
+When using the deployed Netlify dashboard on this Windows computer, start only
+the persistent publishing companion with:
+
+```text
+npm run publishing:companion
+```
+
+The dashboard automatically discovers it at `http://127.0.0.1:8792`. Account
+login opens in Chrome on this computer, browser profiles and media remain on
+this computer, and the local scheduler stays active while the companion is
+running. When the companion is unavailable, the dashboard falls back to the
+Netlify management API and does not attempt browser publishing.
+
 The workspace starts the website, Telegram, Instagram scraper, and Publish Queue Runner together. Sign in to AgenticThat, open Publish Queue Runner, then use the publishing service credentials. The outer AgenticThat session protects the page; the publishing login provides its finer-grained operations roles.
 
 For a separately hosted API, set `PUBLISH_QUEUE_API_URL` for the Next.js server and `NEXT_PUBLIC_PUBLISH_QUEUE_API_URL` for browser requests. The API host must support persistent processes, local media storage, Chrome, and browser profiles; it cannot run as a request-only Netlify Function.

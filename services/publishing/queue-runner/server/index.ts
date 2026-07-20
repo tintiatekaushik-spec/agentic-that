@@ -81,6 +81,13 @@ const maxUploadFileSize = Number(process.env.UPLOAD_MAX_FILE_BYTES ?? 500 * 1024
 
 fs.mkdirSync(uploadDir, { recursive: true });
 
+app.use((req, res, next) => {
+  if (req.headers["access-control-request-private-network"] === "true") {
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+  }
+  next();
+});
+
 function resolveFromRoot(candidate: string) {
   return path.isAbsolute(candidate) ? candidate : path.resolve(rootDir, candidate);
 }

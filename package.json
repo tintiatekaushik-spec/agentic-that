@@ -11,6 +11,7 @@
     "services:telegram:install": "npm --prefix services/messaging/telegram install",
     "services:instagram": "tsx services/scraping/instagram/src/server.ts",
     "services:publishing": "tsx services/publishing/queue-runner/server/index.ts",
+    "publishing:companion": "npm run services:publishing",
     "publishing:css": "node services/publishing/queue-runner/scripts/scope-css.mjs",
     "instagram:login": "node services/scraping/instagram/scripts/save-session.mjs",
     "services:install": "npm run services:telegram:install",
