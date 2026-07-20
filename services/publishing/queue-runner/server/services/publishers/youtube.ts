@@ -5,9 +5,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "../../..");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const YES_MADE_FOR_KIDS_TEXT = /Yes.*made for kids/i;
 const PUBLIC_VISIBILITY_TEXT = /Public/i;

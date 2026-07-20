@@ -31,6 +31,13 @@ async function getLocalServer() {
   return localServerPromise;
 }
 
+function telegramPath(pathname: string) {
+  if (pathname.startsWith("/api/telegram")) {
+    return "/v1" + pathname.slice("/api/telegram".length);
+  }
+  return pathname;
+}
+
 function requestBody(request: Request) {
   if (request.method === "GET" || request.method === "HEAD") return undefined;
   return request.arrayBuffer();
@@ -49,7 +56,7 @@ function responseHeaders(headers: Headers) {
 export default async function handler(request: Request, _context: Context) {
   const local = await getLocalServer();
   const incomingUrl = new URL(request.url);
-  const targetUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, local.origin);
+  const targetUrl = new URL(`${telegramPath(incomingUrl.pathname)}${incomingUrl.search}`, local.origin);
   const headers = new Headers(request.headers);
 
   headers.set("x-forwarded-host", incomingUrl.host);
@@ -70,5 +77,5 @@ export default async function handler(request: Request, _context: Context) {
 }
 
 export const config: Config = {
-  path: "/v1/*"
+  path: ["/v1/*", "/api/telegram/*"]
 };

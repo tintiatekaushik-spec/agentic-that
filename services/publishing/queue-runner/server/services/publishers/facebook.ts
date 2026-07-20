@@ -5,9 +5,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "../../..");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const FACEBOOK_HOME_URL = "https://www.facebook.com/";
 const FACEBOOK_LOGIN_URL = "https://www.facebook.com/login/";
