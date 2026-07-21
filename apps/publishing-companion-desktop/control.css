@@ -1,0 +1,35 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #eaf4ff; background: #07142c; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 12% 0%, #113b72 0, transparent 42%), linear-gradient(145deg, #07142c, #081b36); }
+button { font: inherit; }
+main { width: min(680px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 24px; }
+header { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+header img { width: 76px; height: 76px; border-radius: 20px; box-shadow: 0 14px 32px rgba(0, 188, 255, .22); }
+header span, section span { color: #8eb2da; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+h1 { margin: 3px 0 4px; font-size: 29px; letter-spacing: -.03em; }
+header p { margin: 0; color: #aec5df; }
+.status-card, .credentials-card, .auto-start { border: 1px solid rgba(124, 179, 232, .2); background: rgba(8, 28, 57, .78); box-shadow: 0 16px 50px rgba(0, 0, 0, .2); border-radius: 18px; }
+.status-card { padding: 20px; }
+.status-heading { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 13px; }
+.status-heading i { width: 11px; height: 11px; border-radius: 50%; background: #f3b23b; box-shadow: 0 0 0 5px rgba(243, 178, 59, .12); }
+.status-heading i.ready { background: #38d996; box-shadow: 0 0 0 5px rgba(56, 217, 150, .12); }
+.status-heading i.error { background: #ff657a; box-shadow: 0 0 0 5px rgba(255, 101, 122, .12); }
+.status-heading strong { display: block; font-size: 17px; }
+.status-heading span { display: block; margin-top: 4px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.status-heading button, .credentials-card button, .actions button { border: 1px solid rgba(129, 183, 234, .26); background: #102c52; color: #dceeff; border-radius: 10px; padding: 9px 13px; cursor: pointer; }
+.checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.checks div { padding: 13px; border-radius: 12px; background: rgba(3, 17, 36, .58); }
+.checks span, .checks strong { display: block; }
+.checks strong { margin-top: 5px; font-size: 13px; }
+.credentials-card { margin-top: 14px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.credentials-card strong, .credentials-card code { display: block; margin-top: 5px; }
+.credentials-card code { color: #67e6ff; font-size: 14px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.actions button { min-height: 44px; }
+.actions .primary { grid-column: 1 / -1; border-color: #21c5f4; color: #03172c; background: linear-gradient(135deg, #4be0ff, #179bff); font-weight: 750; }
+.auto-start { margin-top: 14px; padding: 15px 18px; display: flex; align-items: center; gap: 12px; }
+.auto-start input { width: 18px; height: 18px; accent-color: #27c6f5; }
+.auto-start strong, .auto-start small { display: block; }
+.auto-start small { color: #91abc7; margin-top: 3px; }
+footer { margin-top: 18px; color: #7895b5; font-size: 12px; text-align: center; }
+@media (max-width: 600px) { .checks, .actions { grid-template-columns: 1fr; } .actions .primary { grid-column: auto; } }

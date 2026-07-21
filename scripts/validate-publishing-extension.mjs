@@ -19,6 +19,8 @@ if ((manifest.host_permissions ?? []).some(permission => permission === "<all_ur
 const files = new Set([
   manifest.background.service_worker,
   manifest.action?.default_popup,
+  ...Object.values(manifest.icons ?? {}),
+  ...Object.values(manifest.action?.default_icon ?? {}),
   ...manifest.content_scripts.flatMap(script => script.js ?? []),
   ...(manifest.web_accessible_resources ?? []).flatMap(resource => resource.resources ?? []),
 ].filter(Boolean));

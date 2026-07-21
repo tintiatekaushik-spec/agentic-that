@@ -82,6 +82,7 @@ export const api = {
       ok: boolean;
       automationReady: boolean;
       automationRunning: boolean;
+      chromeInstalled?: boolean;
       extensionBridge?: boolean;
       platforms?: Platform[];
     }>("/api/health");

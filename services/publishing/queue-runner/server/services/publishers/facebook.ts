@@ -1,11 +1,8 @@
 import type { Locator, Page } from "playwright-core";
 import type { PlatformUpload } from "../../../shared/schema.js";
 import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
-import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+import { publishingUploadFilePath } from "../../runtime-paths.js";
 
 const FACEBOOK_HOME_URL = "https://www.facebook.com/";
 const FACEBOOK_LOGIN_URL = "https://www.facebook.com/login/";
@@ -577,7 +574,7 @@ export async function loginToFacebook(page: Page, _upload?: PlatformUpload, hold
 }
 
 export async function postToFacebook(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = path.join(rootDir, "uploads", upload.fileName);
+  const filePath = publishingUploadFilePath(upload.fileName);
   if (!fs.existsSync(filePath)) throw new Error(`Facebook upload file not found: ${filePath}`);
 
   if (!upload.caption?.trim()) {

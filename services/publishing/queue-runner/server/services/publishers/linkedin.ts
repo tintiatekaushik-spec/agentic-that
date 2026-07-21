@@ -1,11 +1,8 @@
 import type { Locator, Page } from "playwright-core";
 import type { PlatformUpload } from "../../../shared/schema.js";
 import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
-import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+import { publishingUploadFilePath } from "../../runtime-paths.js";
 
 const LINKEDIN_FEED_URL = "https://www.linkedin.com/feed/";
 const LINKEDIN_LOGIN_URL = "https://www.linkedin.com/login/";
@@ -364,7 +361,7 @@ export async function loginToLinkedIn(page: Page, _upload?: PlatformUpload, acco
 }
 
 export async function postToLinkedIn(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = path.join(rootDir, "uploads", upload.fileName);
+  const filePath = publishingUploadFilePath(upload.fileName);
   if (!fs.existsSync(filePath)) throw new Error(`LinkedIn upload file not found: ${filePath}`);
 
   if (!upload.caption?.trim()) {

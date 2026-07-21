@@ -3,9 +3,7 @@ import type { PlatformUpload } from "../../../shared/schema.js";
 import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+import { publishingUploadFilePath } from "../../runtime-paths.js";
 
 const YES_MADE_FOR_KIDS_TEXT = /Yes.*made for kids/i;
 const PUBLIC_VISIBILITY_TEXT = /Public/i;
@@ -941,7 +939,7 @@ async function postVideoToYouTube(page: Page, upload: PlatformUpload, videoPath:
 }
 
 export async function postToYouTube(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = path.join(rootDir, "uploads", upload.fileName);
+  const filePath = publishingUploadFilePath(upload.fileName);
   if (!fs.existsSync(filePath)) throw new Error(`YouTube upload file not found: ${filePath}`);
 
   if (upload.mimeType.startsWith("image/")) {

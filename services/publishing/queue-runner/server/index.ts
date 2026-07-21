@@ -57,19 +57,21 @@ import {
 } from "./local-storage.js";
 import {
   isAutomationRunning,
+  publishingBrowserRuntimeHealth,
   reconcileSavedAccountSessions,
   removeSavedAccountProfile,
   runAutomation,
   startManualAccountSession,
 } from "./services/publisher.js";
 import { startScheduler, stopScheduler } from "./services/scheduler.js";
+import { publishingUploadDirectory } from "./runtime-paths.js";
 
 export const publishingApp = express();
 const app = publishingApp;
 const port = Number(process.env.PUBLISH_QUEUE_SERVICE_PORT ?? process.env.PORT ?? 8792);
 const host = process.env.PUBLISH_QUEUE_SERVICE_HOST?.trim() || "127.0.0.1";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const uploadDir = resolveFromRoot(process.env.PUBLISH_QUEUE_UPLOAD_DIR ?? process.env.UPLOAD_DIR ?? "./uploads");
+const uploadDir = publishingUploadDirectory();
 const stagedUploadDir = path.join(uploadDir, ".staged");
 const allowedUploadExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"]);
 const allowedUploadMimePrefixes = ["image/", "video/"];
@@ -497,12 +499,15 @@ app.get("/api/health", async (_req, res) => {
   try {
     const storage = await localStorageHealth();
     const serverless = process.env.SERVERLESS === "true" || process.env.NETLIFY === "true";
+    const browser = publishingBrowserRuntimeHealth();
     res.json({
       ok: true,
       service: "agenticthat-publish-queue-runner",
       storage: storage.storage,
-      automationReady: !serverless,
+      automationReady: !serverless && browser.chromeInstalled,
       automationRunning: isAutomationRunning(),
+      chromeInstalled: browser.chromeInstalled,
+      companionInstanceId: process.env.PUBLISH_QUEUE_COMPANION_INSTANCE_ID?.trim() || null,
       extensionBridge: true,
       platforms,
     });

@@ -10,6 +10,7 @@ async function check() {
     const response = await fetch("http://127.0.0.1:8792/api/health", { cache: "no-store" });
     if (!response.ok) throw new Error(`Health check returned ${response.status}.`);
     const health = await response.json();
+    if (!health.chromeInstalled) throw new Error("Google Chrome is required for browser publishing.");
     if (!health.automationReady) throw new Error("Browser automation is not available in this process.");
     if (!health.extensionBridge) throw new Error("Restart the companion to load its extension bridge.");
     status.className = "status ready";
@@ -19,8 +20,8 @@ async function check() {
     status.className = "status offline";
     status.querySelector("span").textContent = "Companion is offline";
     detail.textContent = error instanceof Error
-      ? `${error.message} Double-click Start Publishing Companion.cmd, then check again.`
-      : "Double-click Start Publishing Companion.cmd, then check again.";
+      ? `${error.message} Open AgenticThat Publishing Companion, then check again.`
+      : "Open AgenticThat Publishing Companion, then check again.";
   } finally {
     retry.disabled = false;
   }

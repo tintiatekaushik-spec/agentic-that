@@ -1996,6 +1996,75 @@ textarea:focus, input:focus {
 .auth-input { min-height: 50px; border-radius: 7px; }
 .auth-submit { min-height: 51px; border-radius: 7px; background: #0B5E53; }
 .auth-submit:hover { background: #08483F; }
+.publishing-setup-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #CBDDD5;
+  border-radius: 8px;
+  background: #F2F8F5;
+}
+.publishing-setup-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #153E35;
+}
+.publishing-setup-title > svg { flex: 0 0 auto; margin-top: 2px; color: #0B7661; }
+.publishing-setup-title span { display: grid; gap: 2px; }
+.publishing-setup-title strong { font-size: 14px; }
+.publishing-setup-title small { color: #657770; font-size: 11px; line-height: 1.35; }
+.publishing-setup-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.publishing-setup-checks > span {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 7px;
+  row-gap: 1px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid #D6E1DC;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #687872;
+}
+.publishing-setup-checks svg { grid-row: 1 / 3; }
+.publishing-setup-checks b { color: #283A35; font-size: 11px; }
+.publishing-setup-checks small { font-size: 10px; }
+.publishing-setup-checks .ready { border-color: #9BD3BB; color: #0A7A58; background: #EDFAF3; }
+.publishing-setup-checks .needs-action { border-color: #F0C5A2; color: #B45309; background: #FFF8F0; }
+.publishing-setup-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.publishing-setup-actions a,
+.publishing-setup-actions button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #AFC8BE;
+  border-radius: 5px;
+  background: #FFFFFF;
+  color: #155C4E;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.publishing-setup-actions a:hover,
+.publishing-setup-actions button:hover { border-color: #0B7661; background: #E7F5EF; }
+.publishing-setup-actions button:disabled { color: #81908B; border-color: #D7DFDC; background: #EEF2F0; cursor: not-allowed; }
+.publishing-setup-card > p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #8A4D0F;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.publishing-setup-card > .setup-ready-message { color: #087452; }
 
 .studio-shell {
   min-height: 100vh;
@@ -2200,6 +2269,8 @@ textarea:focus, input:focus {
   .auth-access { align-items: flex-end; padding: 20px; }
   .auth-access-inner { width: 100%; padding: 24px 20px; border-radius: 8px; }
   .auth-heading h2 { font-size: 31px; }
+  .publishing-setup-checks { grid-template-columns: 1fr; }
+  .publishing-setup-actions > * { flex: 1 1 100%; }
   .auth-channel-row { display: none; }
   .studio-rail { grid-template-columns: 1fr; gap: 12px; padding: 15px 16px; }
   .studio-rail-top { display: flex; align-items: center; justify-content: space-between; }

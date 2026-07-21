@@ -3,7 +3,6 @@ import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { PlatformUpload } from "../../shared/schema.js";
 import {
   automationInput,
@@ -26,9 +25,9 @@ import { loginToLinkedIn, postToLinkedIn } from "./publishers/linkedin.js";
 import type { AccountLogin } from "./publishers/manual-login.js";
 import { loginToYouTube, postToYouTube } from "./publishers/youtube.js";
 import { loginToX, postToX } from "./publishers/x.js";
+import { publishingBrowserDataDirectory } from "../runtime-paths.js";
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const accountProfilesDir = path.join(rootDir, "browser-data", "accounts");
+const accountProfilesDir = path.join(publishingBrowserDataDirectory(), "accounts");
 const X_LOGIN_URL = "https://x.com/i/flow/login";
 
 const disabledChromeFeatures = [
@@ -98,7 +97,7 @@ export async function reconcileSavedAccountSessions() {
     .map(account => updatePlatformAccountCredentialState(account.id, true)));
 }
 
-function chromeExecutablePath() {
+function detectedChromeExecutablePath() {
   const configured = process.env.PUBLISH_QUEUE_CHROME_PATH?.trim()
     || process.env.CHROME_PATH?.trim()
     || process.env.GOOGLE_CHROME_PATH?.trim();
@@ -108,11 +107,27 @@ function chromeExecutablePath() {
     process.env["ProgramFiles(x86)"] ? path.join(process.env["ProgramFiles(x86)"], "Google", "Chrome", "Application", "chrome.exe") : undefined,
     process.env.LocalAppData ? path.join(process.env.LocalAppData, "Google", "Chrome", "Application", "chrome.exe") : undefined,
     process.platform === "darwin" ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : undefined,
-    process.platform === "linux" ? "google-chrome" : undefined,
-    process.platform === "win32" ? "chrome.exe" : "google-chrome",
+    process.platform === "linux" ? "/usr/bin/google-chrome" : undefined,
+    process.platform === "linux" ? "/usr/bin/google-chrome-stable" : undefined,
   ].filter(Boolean) as string[];
 
-  return candidates.find(candidate => path.isAbsolute(candidate) && fs.existsSync(candidate)) ?? candidates[candidates.length - 1];
+  return candidates.find(candidate => path.isAbsolute(candidate) && fs.existsSync(candidate)) ?? null;
+}
+
+function chromeExecutablePath() {
+  const executablePath = detectedChromeExecutablePath();
+  if (!executablePath) {
+    throw new Error("Google Chrome is required for publishing. Install Chrome, then restart AgenticThat Publishing Companion.");
+  }
+  return executablePath;
+}
+
+export function publishingBrowserRuntimeHealth() {
+  const executablePath = detectedChromeExecutablePath();
+  return {
+    chromeInstalled: Boolean(executablePath),
+    chromeExecutablePath: executablePath,
+  };
 }
 
 function getFreePort() {
@@ -180,13 +195,12 @@ async function launchAccountBrowser(account: PublishingAccount): Promise<Browser
   const commonArgs = ["--no-first-run", "--no-default-browser-check", "--disable-notifications", "--deny-permission-prompts"];
   const context = await chromium.launchPersistentContext(profileDir, {
     headless: false,
-    channel: "chrome",
+    executablePath: chromeExecutablePath(),
     slowMo: slowMoMs,
     viewport: null,
     args: account.platform === "facebook"
       ? commonArgs
       : [...commonArgs, "--disable-blink-features=AutomationControlled", "--disable-site-isolation-trials", "--disable-sync", "--disable-signin-promo", `--disable-features=${disabledChromeFeatures}`],
-    userAgent: account.platform === "facebook" ? undefined : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   });
   await restoreAccountSessionState(account, context);
   return context;

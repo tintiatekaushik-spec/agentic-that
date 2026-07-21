@@ -27,3 +27,6 @@ services/**/uploads/*
 !services/**/uploads/.gitkeep
 public/console/
 /data/
+/artifacts/
+apps/publishing-companion-desktop/out/
+apps/publishing-companion-desktop/runtime/

@@ -1,11 +1,8 @@
 import type { Locator, Page } from "playwright-core";
 import type { PlatformUpload } from "../../../shared/schema.js";
 import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
-import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+import { publishingUploadFilePath } from "../../runtime-paths.js";
 
 const X_HOME_URL = "https://x.com/home";
 const X_LOGIN_URL = "https://x.com/i/flow/login";
@@ -336,7 +333,7 @@ export async function loginToX(page: Page, _upload?: PlatformUpload, holdAfterLo
 }
 
 export async function postToX(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = path.join(rootDir, "uploads", upload.fileName);
+  const filePath = publishingUploadFilePath(upload.fileName);
   if (!fs.existsSync(filePath)) throw new Error(`X upload file not found: ${filePath}`);
 
   const caption = upload.caption?.trim();

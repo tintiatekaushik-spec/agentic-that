@@ -6,14 +6,15 @@ import {
   ArrowRight, BriefcaseBusiness, KeyRound, LockKeyhole, LogOut, ShieldCheck, UsersRound,
   CalendarDays, ChevronLeft, ChevronRight, CircleAlert, CircleCheckBig,
   CircleDashed, FolderOpen, LayoutDashboard, ListFilter, Send, TimerReset,
-  Bookmark, Check, Clock3, Eye, Heart, Image as ImageIcon, MessageCircle, MoreHorizontal,
-  Repeat2, Settings2, Share2, SlidersHorizontal, ThumbsUp, Video
+  Bookmark, Check, Clock3, Download, Eye, Heart, Image as ImageIcon, MessageCircle, MonitorCheck, MoreHorizontal,
+  Puzzle, Repeat2, Settings2, Share2, SlidersHorizontal, ThumbsUp, Video
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter, FaYoutube } from "react-icons/fa6";
 import type { ActivityLog, Platform, PlatformAccount, PlatformUpload, PublishingSchedule, ScheduleFrequency, ScheduleStatus, UnifiedPostDestinationInput, UserProfile, UserRole } from "../shared/schema.ts";
 import { platformLabels, platformPostRules, platforms, scheduleFrequencies, scheduleFrequencyLabels, userRoleLabels, userRoles } from "../shared/schema.ts";
 import { api, assetUrl, setAuthToken, type AuthResponse } from "./lib/api.ts";
+import { detectPublishingExtension } from "../../../../lib/publishing-extension-bridge.ts";
 
 // --- PLATFORM BRAND ICONS ---
 const CustomIcon = ({ platform, size = 28 }: { platform: Platform; size?: number }) => {
@@ -72,6 +73,9 @@ type AutomationNotice = {
 };
 
 const AUTH_SESSION_KEY = 'agenticthat-publish-queue-session';
+const companionDownloadUrl = process.env.NEXT_PUBLIC_PUBLISHING_COMPANION_DOWNLOAD_URL?.trim()
+  || 'https://github.com/tintiatekaushik-spec/agentic-that/releases/latest/download/AgenticThat-Publishing-Companion-Setup.exe';
+const extensionInstallUrl = process.env.NEXT_PUBLIC_PUBLISHING_EXTENSION_URL?.trim() || '';
 
 const loginRoleOptions: Array<{ role: UserRole; username: string; description: string }> = [
   { role: 'operations_manager', username: 'operations.manager', description: 'Full workspace, users, audit, and automation access' },
@@ -162,6 +166,26 @@ function LandingPage({ onSignIn }: { onSignIn: (response: AuthResponse) => void 
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [connectionState, setConnectionState] = useState<'checking' | 'extension-missing' | 'companion-missing' | 'chrome-missing' | 'ready'>('checking');
+
+  const checkConnection = useCallback(async () => {
+    setConnectionState('checking');
+    const extension = await detectPublishingExtension(true);
+    if (!extension) {
+      setConnectionState('extension-missing');
+      return;
+    }
+    try {
+      const health = await api.health();
+      setConnectionState(!health.chromeInstalled ? 'chrome-missing' : health.automationReady ? 'ready' : 'companion-missing');
+    } catch {
+      setConnectionState('companion-missing');
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkConnection();
+  }, [checkConnection]);
 
   const chooseRole = (role: UserRole) => {
     const credentials = loginRoleOptions.find(option => option.role === role);
@@ -211,9 +235,21 @@ function LandingPage({ onSignIn }: { onSignIn: (response: AuthResponse) => void 
             <p>Use your assigned workspace credentials. Your role controls which sections are available after sign in.</p>
           </div>
 
-          <div className='temporary-access'>
-            <CircleDashed size={17} />
-            <span>Before signing in, install the publishing extension and start <code>Start Publishing Companion.cmd</code>.</span>
+          <div className='publishing-setup-card'>
+            <div className='publishing-setup-title'><MonitorCheck size={19} /><span><strong>One-time publishing setup</strong><small>Install both once. No project download or commands.</small></span></div>
+            <div className='publishing-setup-checks'>
+              <span className={connectionState === 'extension-missing' ? 'needs-action' : connectionState === 'checking' ? '' : 'ready'}><Puzzle size={16} /><b>Chrome extension</b><small>{connectionState === 'extension-missing' ? 'Install required' : connectionState === 'checking' ? 'Checking…' : 'Ready'}</small></span>
+              <span className={connectionState === 'companion-missing' ? 'needs-action' : connectionState === 'ready' || connectionState === 'chrome-missing' ? 'ready' : ''}><Download size={16} /><b>Windows companion</b><small>{connectionState === 'companion-missing' ? 'Install or open' : connectionState === 'ready' || connectionState === 'chrome-missing' ? 'Running' : 'Waiting'}</small></span>
+            </div>
+            <div className='publishing-setup-actions'>
+              {extensionInstallUrl
+                ? <a href={extensionInstallUrl} target='_blank' rel='noreferrer'><Puzzle size={15} />Install extension</a>
+                : <button type='button' disabled title='Add NEXT_PUBLIC_PUBLISHING_EXTENSION_URL after Chrome Web Store approval'><Puzzle size={15} />Web Store approval pending</button>}
+              <a href={companionDownloadUrl}><Download size={15} />Install Windows companion</a>
+              <button type='button' onClick={() => window.location.reload()}><RefreshCw size={15} />Check again</button>
+            </div>
+            {connectionState === 'chrome-missing' && <p>Google Chrome is missing. Open the Companion app and choose <strong>Install Google Chrome</strong>.</p>}
+            {connectionState === 'ready' && <p className='setup-ready-message'><CircleCheckBig size={15} />Publishing connection ready. Copy the dashboard login from the Companion app.</p>}
           </div>
 
           <div className='role-options' aria-label='Choose login type'>
@@ -249,7 +285,7 @@ function LandingPage({ onSignIn }: { onSignIn: (response: AuthResponse) => void 
               </div>
             )}
             {error && <p className='auth-error' role='alert'>{error}</p>}
-            <button type='submit' className='auth-submit' disabled={loading}>
+            <button type='submit' className='auth-submit' disabled={loading || connectionState !== 'ready'}>
               {loading ? <Loader2 className='spin' size={18} /> : <ArrowRight size={18} />}
               Sign in
             </button>

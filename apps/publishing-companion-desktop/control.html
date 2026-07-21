@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+    <title>AgenticThat Publishing Companion</title>
+    <link rel="stylesheet" href="control.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="assets/app-icon-1024.png" alt="" />
+        <div><span>AgenticThat</span><h1>Publishing Companion</h1><p>Keep this app running for scheduled social publishing.</p></div>
+      </header>
+
+      <section class="status-card">
+        <div class="status-heading"><i id="status-dot"></i><div><strong id="status-title">Starting companion…</strong><span id="status-detail">Preparing the local scheduler.</span></div><button id="refresh" type="button">Check again</button></div>
+        <div class="checks">
+          <div><span>Local service</span><strong id="service-check">Checking</strong></div>
+          <div><span>Google Chrome</span><strong id="chrome-check">Checking</strong></div>
+          <div><span>Scheduler</span><strong id="scheduler-check">Checking</strong></div>
+        </div>
+      </section>
+
+      <section class="credentials-card">
+        <div><span>Dashboard login</span><strong id="username">operations.manager</strong><code id="password">Loading…</code></div>
+        <button id="copy-credentials" type="button">Copy login</button>
+      </section>
+
+      <section class="actions">
+        <button class="primary" id="open-dashboard" type="button">Open publishing dashboard</button>
+        <button id="install-chrome" type="button">Install Google Chrome</button>
+        <button id="open-logs" type="button">View logs</button>
+        <button id="open-data" type="button">Open local data</button>
+      </section>
+
+      <label class="auto-start"><input id="auto-start" type="checkbox" /><span><strong>Start automatically with Windows</strong><small>Required for scheduled posts while the dashboard is closed.</small></span></label>
+      <footer>Version <span id="version">1.0.0</span> · Social passwords are entered only on the social network's own Chrome page.</footer>
+    </main>
+    <script src="control.js"></script>
+  </body>
+</html>

@@ -1,14 +1,21 @@
 # AgenticThat Publishing Companion extension
 
-This Manifest V3 Chrome extension connects the deployed AgenticThat dashboard
-to the publishing companion running on `127.0.0.1:8792`. It does not receive or
-store social-network passwords. Social account login remains manual in the
-dedicated Chrome profile opened by the companion.
+This Manifest V3 Chrome extension connects the AgenticThat publishing dashboard
+to the Windows companion on `127.0.0.1:8792`. It requests no broad browsing
+permission and never receives or stores social-network passwords.
 
-For development, open `chrome://extensions`, enable **Developer mode**, choose
-**Load unpacked**, and select this directory. For customer distribution, publish
-this same directory through the Chrome Web Store after completing store review.
+Customers install the reviewed extension from the Chrome Web Store using the
+button on `https://agenticthat.netlify.app/publishing`. They do not load this
+folder or download the repository.
 
-The production dashboard origin is intentionally restricted to
-`https://agenticthat.netlify.app`. Add an exact custom-domain match to
-`manifest.json` before deploying the dashboard on another domain.
+For local development only, run `npm run publishing:extension:open`, enable
+Developer mode on the Chrome extensions page, choose **Load unpacked**, and
+select this directory.
+
+Build the review ZIP with `npm run publishing:extension:package`. Store listing
+copy, permission explanations, and the submission checklist are in
+`docs/chrome-web-store-listing.md`.
+
+The production origin is intentionally restricted to
+`https://agenticthat.netlify.app`. Add a specific origin to `manifest.json`
+before moving the production dashboard to another domain.

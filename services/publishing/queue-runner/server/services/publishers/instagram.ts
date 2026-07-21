@@ -1,11 +1,8 @@
 import type { Locator, Page } from "playwright-core";
 import type { PlatformUpload } from "../../../shared/schema.js";
 import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
-import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+import { publishingUploadFilePath } from "../../runtime-paths.js";
 
 const INSTAGRAM_HOME_URL = "https://www.instagram.com/";
 const INSTAGRAM_LOGIN_URL = "https://www.instagram.com/accounts/login/";
@@ -605,7 +602,7 @@ export async function loginToInstagram(page: Page, _upload?: PlatformUpload, hol
 }
 
 export async function postToInstagram(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = path.join(rootDir, "uploads", upload.fileName);
+  const filePath = publishingUploadFilePath(upload.fileName);
   if (!fs.existsSync(filePath)) throw new Error(`Instagram upload file not found: ${filePath}`);
 
   await loginToInstagram(page, upload, false, accountLogin);
