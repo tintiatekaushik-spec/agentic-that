@@ -1,23 +1,63 @@
 import { z } from "zod";
 
 export const platforms = ["instagram", "x", "linkedin", "facebook", "youtube"] as const;
+export const postFormats = ["image", "video", "text"] as const;
 export const uploadStatuses = ["queued", "processing", "posted", "failed"] as const;
+export const submissionStatuses = ["awaiting_schedule", "scheduling", "scheduled"] as const;
 export const scheduleFrequencies = ["daily", "weekly", "biweekly", "monthly", "yearly", "custom", "onetime"] as const;
 export const scheduleStatuses = ["active", "inactive"] as const;
 export const userRoles = ["operations_manager", "post_uploader", "scheduler", "viewer"] as const;
+export const accountSafetyStatuses = ["healthy", "warning", "paused", "restricted"] as const;
+export const accountSafetyModes = ["standard", "protected"] as const;
+export const publishingEngines = ["companion", "external_browser"] as const;
+export const publishActionStates = ["not_started", "prepared", "submitted", "confirmed", "uncertain"] as const;
+
+export const youtubeOptionsSchema = z.object({
+  audience: z.enum(["made_for_kids", "not_made_for_kids"]),
+  visibility: z.enum(["private", "unlisted", "public"]),
+});
+export const platformOptionsSchema = z.object({ youtube: youtubeOptionsSchema.optional() });
+export type PlatformOptions = z.infer<typeof platformOptionsSchema>;
+export type YouTubeOptions = z.infer<typeof youtubeOptionsSchema>;
 
 export const platformSchema = z.enum(platforms);
+export const postFormatSchema = z.enum(postFormats);
 export const uploadStatusSchema = z.enum(uploadStatuses);
+export const submissionStatusSchema = z.enum(submissionStatuses);
 export const scheduleFrequencySchema = z.enum(scheduleFrequencies);
 export const scheduleStatusSchema = z.enum(scheduleStatuses);
 export const userRoleSchema = z.enum(userRoles);
+export const centralAccessLevelSchema = z.enum(["view", "operate", "configure"]);
+export const accountSafetyStatusSchema = z.enum(accountSafetyStatuses);
+export const accountSafetyModeSchema = z.enum(accountSafetyModes);
+export const publishingEngineSchema = z.enum(publishingEngines);
+export const publishActionStateSchema = z.enum(publishActionStates);
 export const scheduleIdSchema = z.coerce.number().int().positive();
 
+export const linkedinManagedPageSchema = z.object({
+  id: z.string().trim().min(1).max(180),
+  name: z.string().trim().min(1).max(200),
+  pageUrl: z.string().url().refine(value => /^https:\/\/(?:www\.)?linkedin\.com\/company\/[^/]+\/admin(?:\/|$)/i.test(value), "Use a LinkedIn Page admin URL"),
+  pagePostsUrl: z.string().url().refine(value => /^https:\/\/(?:www\.)?linkedin\.com\/company\/[^/]+\/admin\/page-posts(?:\/|$)/i.test(value), "Use a LinkedIn Page posts URL"),
+});
+export type LinkedInManagedPage = z.infer<typeof linkedinManagedPageSchema>;
+
 export type Platform = (typeof platforms)[number];
+export type PostFormat = (typeof postFormats)[number];
 export type UploadStatus = (typeof uploadStatuses)[number];
+export type SubmissionStatus = (typeof submissionStatuses)[number];
 export type ScheduleFrequency = (typeof scheduleFrequencies)[number];
 export type ScheduleStatus = (typeof scheduleStatuses)[number];
 export type UserRole = (typeof userRoles)[number];
+export type AccountSafetyStatus = (typeof accountSafetyStatuses)[number];
+export type AccountSafetyMode = (typeof accountSafetyModes)[number];
+export type PublishingEngine = (typeof publishingEngines)[number];
+export type PublishActionState = (typeof publishActionStates)[number];
+
+export const publishingEngineLabels: Record<PublishingEngine, string> = {
+  companion: "Companion",
+  external_browser: "External browser"
+};
 
 export const scheduleFrequencyLabels: Record<ScheduleFrequency, string> = {
   daily: "Daily",
@@ -30,10 +70,10 @@ export const scheduleFrequencyLabels: Record<ScheduleFrequency, string> = {
 };
 
 export const userRoleLabels: Record<UserRole, string> = {
-  operations_manager: "Operations Manager",
-  post_uploader: "Post Uploader",
+  operations_manager: "Publishing Manager",
+  post_uploader: "Content Uploader",
   scheduler: "Scheduler",
-  viewer: "Viewer"
+  viewer: "Publishing Viewer"
 };
 
 
@@ -44,6 +84,8 @@ export const loginInputSchema = z.object({
 
 export const userProfileSchema = z.object({
   id: z.string(),
+  workspaceId: z.string(),
+  platformUserId: z.string().optional(),
   username: z.string(),
   fullName: z.string(),
   email: z.string().optional(),
@@ -51,7 +93,9 @@ export const userProfileSchema = z.object({
   isActive: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  lastLoginAt: z.string().optional()
+  lastLoginAt: z.string().optional(),
+  centralAccessLevel: centralAccessLevelSchema.optional(),
+  capabilities: z.array(z.string()).optional()
 });
 
 export const createUserProfileSchema = z.object({
@@ -74,12 +118,25 @@ export const updateUserProfileSchema = z.object({
 
 export const platformAccountSchema = z.object({
   id: z.string(),
+  workspaceId: z.string(),
+  companionId: z.string().optional(),
   platform: platformSchema,
   displayName: z.string(),
   handle: z.string(),
   loginIdentifier: z.string(),
   credentialConfigured: z.boolean(),
   enabled: z.boolean(),
+  companionStatus: z.enum(["online", "offline", "outdated", "error", "updating"]).optional(),
+  sessionStatus: z.enum(["connected", "reconnect_required"]).optional(),
+  readiness: z.enum(["ready", "waiting_for_companion", "reconnect_required", "unavailable"]).optional(),
+  executionEngine: publishingEngineSchema.optional(),
+  safetyStatus: accountSafetyStatusSchema.optional(),
+  safetyMode: accountSafetyModeSchema.optional(),
+  twoFactorEnabled: z.boolean().optional(),
+  linkedinManagedPages: z.array(linkedinManagedPageSchema).max(100).optional(),
+  linkedinManagedPagesUpdatedAt: z.string().optional(),
+  safetyReason: z.string().optional(),
+  safetyPausedAt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
@@ -88,11 +145,16 @@ export const upsertPlatformAccountSchema = z.object({
   displayName: z.string().trim().min(1, "Account name is required"),
   handle: z.string().trim().min(1, "Account handle is required"),
   loginIdentifier: z.string().trim().max(254).optional().default(""),
-  enabled: z.boolean().optional()
+  enabled: z.boolean().optional(),
+  executionEngine: publishingEngineSchema.optional(),
+  safetyMode: accountSafetyModeSchema.optional(),
+  twoFactorEnabled: z.boolean().optional(),
+  companionId: z.string().optional()
 });
 
 export const publishingScheduleSchema = z.object({
   id: scheduleIdSchema,
+  workspaceId: z.string(),
   name: z.string(),
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MI time"),
   frequency: scheduleFrequencySchema,
@@ -122,6 +184,7 @@ export const upsertPublishingScheduleSchema = z.object({
 
 export const socialMediaScheduleSchema = z.object({
   id: z.number().int().positive(),
+  workspaceId: z.string(),
   scheduleId: scheduleIdSchema,
   accountId: z.string(),
   platform: platformSchema,
@@ -138,24 +201,23 @@ export const platformLabels: Record<Platform, string> = {
   youtube: "YouTube"
 };
 
-export type PostMediaKind = "image" | "video";
-
 export const platformPostRules: Record<Platform, {
-  media: readonly PostMediaKind[];
+  formats: readonly PostFormat[];
   descriptionLimit: number;
   titleLimit?: number;
   titleRequired?: boolean;
-  titleRequiredFor?: readonly PostMediaKind[];
+  titleRequiredFor?: readonly PostFormat[];
 }> = {
-  instagram: { media: ["image", "video"], descriptionLimit: 2_200 },
-  x: { media: ["image", "video"], descriptionLimit: 280 },
-  linkedin: { media: ["image", "video"], descriptionLimit: 3_000 },
-  facebook: { media: ["image", "video"], descriptionLimit: 63_206 },
-  youtube: { media: ["image", "video"], descriptionLimit: 5_000, titleLimit: 100, titleRequiredFor: ["video"] }
+  instagram: { formats: ["image", "video"], descriptionLimit: 2_200 },
+  x: { formats: ["image", "video", "text"], descriptionLimit: 280 },
+  linkedin: { formats: ["image", "video", "text"], descriptionLimit: 3_000 },
+  facebook: { formats: ["image", "video", "text"], descriptionLimit: 63_206 },
+  youtube: { formats: ["image", "video", "text"], descriptionLimit: 5_000, titleLimit: 100, titleRequiredFor: ["video"] }
 };
 
 export const unifiedPostDestinationSchema = z.object({
   accountId: z.string().trim().min(1, "Choose a publishing account"),
+  linkedinPageId: z.string().trim().min(1).max(180).optional(),
   description: z.string().trim().max(100_000).optional(),
   scheduledAt: z.string().trim().optional(),
   scheduleId: scheduleIdSchema.optional()
@@ -168,6 +230,12 @@ export const unifiedPostDestinationSchema = z.object({
 export const unifiedPostDestinationsSchema = z.array(unifiedPostDestinationSchema)
   .min(1, "Choose at least one publishing destination")
   .max(100, "Choose no more than 100 publishing destinations");
+
+export const contentSubmissionDestinationSchema = z.object({
+  accountId: z.string().trim().min(1, "Choose a publishing account"),
+  linkedinPageId: z.string().trim().min(1).max(180).optional(),
+  description: z.string().trim().max(100_000).optional()
+});
 
 export const platformHandles: Record<Platform, string> = {
   instagram: "@instagram",
@@ -199,7 +267,9 @@ export const uploadAutomationSchema = z.object({
 
 export const platformUploadSchema = z.object({
   id: z.string(),
+  workspaceId: z.string(),
   platform: platformSchema,
+  postFormat: postFormatSchema.optional(),
   accountId: z.string(),
   originalName: z.string(),
   fileName: z.string(),
@@ -208,24 +278,79 @@ export const platformUploadSchema = z.object({
   size: z.number(),
   url: z.string(),
   title: z.string().optional(),
+  platformOptions: platformOptionsSchema.optional(),
+  linkedinTarget: linkedinManagedPageSchema.optional(),
+
   caption: z.string().min(1, "Caption is required"),
+
   status: uploadStatusSchema,
+  statusDetail: z.enum([
+    "queued",
+    "waiting_for_companion",
+    "opening_platform",
+    "uploading",
+    "publishing",
+    "published",
+    "failed",
+    "reconnect_required"
+  ]).optional(),
+
   failureReason: z.string().optional(),
   attemptCount: z.number().int().nonnegative().optional(),
   lastAttemptAt: z.string().optional(),
   postedAt: z.string().optional(),
+  publishActionState: publishActionStateSchema.optional(),
+  safetyDeferredUntil: z.string().optional(),
+  safetyReason: z.string().optional(),
+
   uploadedAt: z.string(),
   updatedAt: z.string(),
+
   scheduledAt: z.string().optional(),
   scheduleId: scheduleIdSchema.optional(),
+
   createdByUserId: z.string().optional(),
+  createdByName: z.string().optional(),
   scheduledByUserId: z.string().optional(),
+  scheduledByName: z.string().optional(),
+
+  sourceSubmissionId: z.string().optional(),
   lastUpdatedByUserId: z.string().optional(),
+
   automation: uploadAutomationSchema
+});
+
+export const contentSubmissionSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  postFormat: postFormatSchema,
+  originalName: z.string(),
+  fileName: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+  url: z.string(),
+  title: z.string().optional(),
+  description: z.string().min(1),
+  platformOptions: platformOptionsSchema.optional(),
+  rightsConfirmed: z.boolean(),
+  status: submissionStatusSchema,
+  createdByUserId: z.string(),
+  createdByName: z.string().optional(),
+  selectedAccountIds: z.array(z.string()).min(1),
+  selectedDestinations: z.array(contentSubmissionDestinationSchema).max(100).optional(),
+  scheduledByUserId: z.string().optional(),
+  scheduledByName: z.string().optional(),
+
+  schedulingLeaseExpiresAt: z.string().optional(),
+
+  destinationUploadIds: z.array(z.string()),
+  createdAt: z.string(),
+  updatedAt: z.string()
 });
 
 export const updateUploadDetailsSchema = z.object({
   title: z.string().trim().optional(),
+  platformOptions: platformOptionsSchema.optional(),
   caption: z.string().trim().min(1, "Caption is required"),
   scheduledAt: z.string().nullable().optional(),
   scheduleId: scheduleIdSchema.nullable().optional(),
@@ -239,6 +364,7 @@ export const updateUploadStatusSchema = z.object({
 
 export const activityLogSchema = z.object({
   id: z.string(),
+  workspaceId: z.string(),
   actorUserId: z.string().optional(),
   actorName: z.string().optional(),
   actorUsername: z.string().optional(),
@@ -251,6 +377,7 @@ export const activityLogSchema = z.object({
 });
 
 export type PlatformUpload = z.infer<typeof platformUploadSchema>;
+export type ContentSubmission = z.infer<typeof contentSubmissionSchema>;
 export type PlatformAccount = z.infer<typeof platformAccountSchema>;
 export type PublishingSchedule = z.infer<typeof publishingScheduleSchema>;
 export type SocialMediaSchedule = z.infer<typeof socialMediaScheduleSchema>;

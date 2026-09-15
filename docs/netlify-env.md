@@ -9,12 +9,28 @@ DATA_STORE=netlify-blobs
 NEXT_PUBLIC_TELEGRAM_DASHBOARD_URL=/console
 NEXT_PUBLIC_WHATSAPP_DASHBOARD_URL=/dashboard
 NEXT_PUBLIC_PUBLISHING_EXTENSION_URL=<approved-chrome-web-store-listing-url>
-NEXT_PUBLIC_PUBLISHING_COMPANION_DOWNLOAD_URL=https://github.com/tintiatekaushik-spec/agentic-that/releases/latest/download/AgenticThat-Publishing-Companion-Setup.exe
+NEXT_PUBLIC_PUBLISHING_COMPANION_DOWNLOAD_URL=/companion/download
+
+# Supabase Data API. The publishable key is public and constrained by RLS plus
+# token-authenticated Companion RPCs. The secret key stays server-only.
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<supabase-publishable-key>
+SUPABASE_SECRET_KEY=<supabase-secret-key>
 
 # Telegram API and encrypted account sessions
 SESSION_ENCRYPTION_KEY=<new-random-32-byte-base64url-secret>
 USER_PROVISIONING_KEY=<different-new-random-32-byte-base64url-secret>
 SESSION_COOKIE_SECURE=true
+TELEGRAM_DATA_STORE=postgres
+
+# Platform authentication, verification, reset, and distributed abuse controls
+PLATFORM_PUBLIC_URL=https://agenticthat.com
+PLATFORM_SUPER_ADMIN_EMAILS=<production-admin-email>
+AUTH_EMAIL_FROM="AgenticThat <accounts@your-domain.example>"
+RESEND_API_KEY=<server-only-resend-api-key>
+AUTH_RATE_LIMIT_PEPPER=<new-random-32-byte-base64url-secret>
+NEXT_PUBLIC_TEAM_TESTING_FULL_ACCESS=false
+RBAC_ENFORCEMENT_MODE=enforce
 
 # WhatsApp using the Meta Cloud API
 WA_PROVIDER=meta
@@ -23,7 +39,10 @@ META_ACCESS_TOKEN=<new-meta-system-user-token>
 META_PHONE_NUMBER_ID=<meta-phone-number-id>
 META_WABA_ID=<whatsapp-business-account-id>
 META_APP_ID=<meta-app-id>
+META_APP_SECRET=<meta-app-secret>
+META_CONFIGURATION_ID=<embedded-signup-configuration-id>
 META_WEBHOOK_VERIFY_TOKEN=<new-random-webhook-verify-token>
+CREDENTIAL_ENCRYPTION_KEY=<new-random-32-byte-hex-key>
 
 # WhatsApp application database and first admin
 DATABASE_URL=<serverless-pooled-postgresql-url>
@@ -33,13 +52,13 @@ BUSINESS_NAME=AgenticThat
 WA_FROM=<e164-whatsapp-number>
 CURRENCY=INR
 
-# Instagram authenticated scraper session
-INSTAGRAM_STORAGE_STATE_BASE64=<authenticated-session-payload>
-INSTAGRAM_SESSION_EXPIRY_BUFFER_DAYS=7
-INSTAGRAM_MAX_SESSION_ATTEMPTS=3
-```
+# Exact stable, signed, notarized Companion release. QA tags are rejected by
+# the production configuration check.
+NEXT_PUBLIC_PUBLISHING_COMPANION_RELEASE_TAG=v2.1.12
 
-Use the single Instagram value when it fits the Netlify variable limit. For a larger regenerated payload, replace it with consecutive `INSTAGRAM_STORAGE_STATE_BASE64_CHUNK_1`, `_2`, and so on, without gaps. Netlify accepts up to 5,000 characters per value, while function-runtime limits still apply.
+# Instagram scraping uses public Playwright pages; no Instagram session variables are required.
+INSTAGRAM_CACHE_FALLBACK_MAX_AGE_MINUTES=360
+```
 
 ## Scopes
 
@@ -51,15 +70,16 @@ If the Netlify plan supports variable scopes:
 
 Variables declared only under `[build.environment]` in `netlify.toml` are not exposed to Functions. `DATA_STORE` is therefore included above even though the repository also supplies its build-time value.
 
+Before deploying a release, run `npm run production:check` against the proposed
+Netlify environment. Apply SQL only through the approval-gated database workflow;
+ordinary Netlify builds are intentionally read-only.
+
 ## Values not to add
 
 These are unused, redundant, local-only, or provider-specific for the current production configuration:
 
 ```env
 DB_CONNECTOR=
-META_APP_SECRET=
-TELEGRAM_API_ID=
-TELEGRAM_API_HASH=
 TELEGRAM_API_URL=
 NEXT_PUBLIC_PUBLISH_QUEUE_API_URL=
 PUBLISH_QUEUE_API_URL=
@@ -68,36 +88,75 @@ PLATFORM_AUTH_DATA_PATH=
 SECRETS_SCAN_OMIT_KEYS=
 ```
 
-`DATABASE_URL` is the only database variable needed. Use a serverless-compatible pooled PostgreSQL connection URL. `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` are entered per account in Config Manager; the environment versions are only used by the standalone CLI login command.
+`DATABASE_URL` is the server-side Postgres connection. The public Supabase URL
+and publishable key let Companion call only the granted RLS-protected RPCs.
+`SUPABASE_SECRET_KEY` stays on Netlify and is used only to put publishing
+media in the private `job-artifacts` bucket and issue scoped signed downloads.
+Legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` values are
+accepted during migration. All Supabase variables and `DATABASE_URL` must point
+to the same project.
+`CREDENTIAL_ENCRYPTION_KEY` must decode to exactly 32 bytes; keep it stable after
+deployment because changing it makes stored workspace credentials unreadable.
+`TELEGRAM_API_ID` and `TELEGRAM_API_HASH` are entered per connection in Config
+Manager when no shared credentials are configured. They may instead be set as
+Functions-scoped variables to keep the connection form phone-only for every
+workspace. Both modes encrypt the credentials alongside the Telegram session.
 
-Do not add `SECRETS_SCAN_OMIT_KEYS` in the Netlify UI. The repository only excludes the two intentionally public `NEXT_PUBLIC_*` values from scanning. Real tokens, passwords, session cookies, and connection strings should remain protected by secret scanning.
+`META_APP_SECRET` is required for Embedded Signup token exchange and signed webhook validation. `META_CONFIGURATION_ID` is required for the recommended Embedded Signup/coexistence button. If you intentionally use only the advanced manual Cloud API credential form, the configuration id can be omitted, but the app secret should still be set for webhook validation.
 
-## Optional alternatives
+Do not add `SECRETS_SCAN_OMIT_KEYS` in the Netlify UI. The repository excludes only public URLs, provider names, API versions, phone/WABA/app identifiers, and the Embedded Signup configuration id. Real tokens, app secrets, passwords, encryption keys, session cookies, and connection strings remain protected by secret scanning.
 
-Only add these when switching WhatsApp from Meta to WATI:
+## Optional WATI fallback
+
+New workspaces can choose Meta or WATI during WhatsApp onboarding. For WATI,
+the workspace owner enters the tenant API URL and access token in the setup
+wizard; AgenticThat validates them, generates a workspace-specific webhook
+secret, and stores the connection encrypted. Those self-serve connections do
+not require global WATI variables in Netlify.
+
+Only add these variables when seeding a legacy/default WATI connection for the
+first admin workspace:
 
 ```env
 WA_PROVIDER=wati
 WATI_API_URL=<wati-tenant-api-url>
 WATI_ACCESS_TOKEN=<wati-access-token>
+WATI_WEBHOOK_SECRET=<new-random-webhook-secret>
 ```
 
-Only add `TELEGRAM_API_URL` when Telegram is hosted as an external service instead of the included Netlify Function. For the normal local publishing setup, omit both Publish Queue URL variables. The Chrome extension connects the dashboard to the companion at `http://127.0.0.1:8792`, keeping account configuration, schedules, local media, and browser sessions together on the computer that performs publishing.
+The WATI webhook URL must include the same tenant secret:
+
+```text
+https://<your-netlify-site>.netlify.app/api/webhooks/wati?token=<wati-webhook-secret>
+```
+
+Read-only WhatsApp Web monitoring requires a separately deployed Baileys service. Configure its HTTPS URL and shared secret from `/settings`; the archive does not contain a runnable Baileys service. For a legacy environment-configured monitor, the equivalent variables are `BAILEYS_SERVICE_URL` and `BAILEYS_API_SECRET`.
+
+Only add `TELEGRAM_API_URL` when Telegram is hosted as an external service
+instead of the included Netlify Function. For publishing, omit both Publish
+Queue URL variables. Supabase keeps workspace metadata, durable jobs, leases,
+events, results, and private media. The paired Companion keeps browser sessions
+and profiles locally and calls Supabase directly. Team members use the website
+without a tunnel, extension, or local URL.
 
 ## Publish Queue distribution
 
-Interactive social login and browser publishing use the installable Windows
-companion because a request-based Netlify Function cannot own persistent Chrome
-profiles or a continuously running scheduler. Customers install the extension
-and companion from the setup card on `/publishing`; they do not configure local
-environment variables, download the repository, or run commands.
+Interactive social login and browser publishing use the installable desktop
+Companion because a request-based Netlify Function cannot own persistent browser
+profiles or a continuously running local worker. A Workspace Manager installs and
+pairs it once from Connections; other workspace users do not install it. After
+downloading the installer for their operating system, the manager runs it once;
+Companion can then start at login. Windows and signed macOS builds update from
+signed GitHub releases, while Linux upgrades use the newer DEB/RPM or archive.
 
-After the Chrome Web Store approves the extension, set
-`NEXT_PUBLIC_PUBLISHING_EXTENSION_URL` to its public listing and redeploy. Keep
-`NEXT_PUBLIC_PUBLISHING_COMPANION_DOWNLOAD_URL` on the stable GitHub Release URL
-shown above. Do not set either Publish Queue API URL for this local-extension
-architecture. The companion generates and protects its own credentials and
-stores each customer's queue and browser sessions on that customer's computer.
+The Chrome extension is an optional compatibility bridge; core website jobs do
+not require it. Keep
+`NEXT_PUBLIC_PUBLISHING_COMPANION_DOWNLOAD_URL` on `/companion/download`, which
+offers the signed Windows Setup, universal macOS DMG, and Linux DEB/RPM/ZIP
+assets from the latest release. Do not set either Publish Queue API URL. The Companion
+generates and protects its own local credentials and browser sessions; central
+workspace publishing remains available to the authorized team. Publishing and
+Telegram scheduling are intentionally paused in this release.
 
 ## Webhook
 
@@ -108,3 +167,15 @@ https://<your-netlify-site>.netlify.app/api/webhooks/meta
 ```
 
 Enter the same newly generated value from `META_WEBHOOK_VERIFY_TOKEN` when Meta asks for the verification token.
+
+Subscribe the Meta webhook to both `messages` and `calls`. The `calls` subscription powers the new call log and missed-call alerts.
+
+## Upgrade behavior
+
+Run the database workflow before deploying. It creates the tenant/account,
+phone-number, call-log, normalized Telegram/Publishing, authentication-security,
+and job-control schema, then verifies every public table has RLS with browser
+grants revoked. On Telegram's first request after migration, encrypted legacy
+Blob rows are imported idempotently into normalized Supabase tables. Keep the
+existing `META_ACCESS_TOKEN`, `META_WABA_ID`, and `META_PHONE_NUMBER_ID` variables
+during the first WhatsApp cutover; new workspaces never inherit them.

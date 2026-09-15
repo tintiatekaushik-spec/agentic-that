@@ -1,8 +1,9 @@
 import type { Locator, Page } from "playwright-core";
 import type { PlatformUpload } from "../../../shared/schema.js";
-import { waitForLoginWithManualFallback, type AccountLogin } from "./manual-login.js";
+import { waitForLoginWithManualFallback, waitForSavedSessionVerification, type AccountLogin } from "./manual-login.js";
 import fs from "fs";
 import { publishingUploadFilePath } from "../../runtime-paths.js";
+import { setLocalInputFile } from "./local-file-input.js";
 
 const X_HOME_URL = "https://x.com/home";
 const X_LOGIN_URL = "https://x.com/i/flow/login";
@@ -12,7 +13,7 @@ function getLoginHoldMs() {
 }
 
 function getPostHoldMs() {
-  return Number(process.env.X_POST_HOLD_MS ?? 15000);
+  return Number(process.env.X_POST_HOLD_MS ?? 1000);
 }
 
 async function firstVisible(locators: Locator[]) {
@@ -71,6 +72,12 @@ async function dismissCookiePrompt(page: Page) {
 
 async function isLoggedIn(page: Page) {
   if (/\/i\/flow\/login|\/login(?:\?|$)|account\/access/i.test(page.url())) return false;
+
+  // X's public shell can expose Home/Post navigation even while signed out.
+  // Require the protected login cookie as well as authenticated UI so a
+  // scheduled post cannot inherit a false-positive manual login.
+  const cookies = await page.context().cookies(["https://x.com", "https://twitter.com"]).catch(() => []);
+  if (!cookies.some(cookie => cookie.name === "auth_token")) return false;
 
   const signals = [
     page.locator('[data-testid="SideNav_AccountSwitcher_Button"]'),
@@ -172,10 +179,45 @@ async function openPostComposer(page: Page) {
 }
 
 async function getPostComposer(page: Page) {
-  return waitForVisible([
+  const dialog = await waitForVisible([
     page.locator('[role="dialog"]').filter({ has: page.locator('[data-testid="tweetTextarea_0"]') }),
     page.locator('[role="dialog"]').filter({ has: page.getByRole("textbox", { name: /Post text|What's happening/i }) }),
-  ], 15000);
+  ], 4000);
+  if (dialog) return dialog;
+
+  const editor = await waitForVisible([
+    page.locator('[data-testid="tweetTextarea_0"]'),
+    page.getByRole("textbox", { name: /Post text|What's happening/i }),
+    page.locator('[contenteditable="true"][role="textbox"]'),
+  ], 11000);
+  if (!editor) return null;
+
+  const editorDialog = editor.locator("xpath=ancestor::*[@role='dialog'][1]");
+  if (await editorDialog.isVisible().catch(() => false)) return editorDialog;
+  return page.locator("body");
+}
+
+function xMediaPreviewLocators(page: Page, composer: Locator) {
+  // X can render the textarea in a nested dialog while mounting the media
+  // preview in a wider modal container. Search both scopes, prioritizing the
+  // page-level, composer-specific controls that are present in the current UI.
+  return [
+    page.locator('[role="dialog"] [data-testid="attachments"]'),
+    page.locator('[role="dialog"] [data-testid="media"]'),
+    page.locator('[role="dialog"] [data-testid^="removeMedia"]'),
+    page.locator('[role="dialog"] button[aria-label*="Remove media" i]'),
+    page.locator('[role="dialog"] img[src^="blob:"], [role="dialog"] video[src^="blob:"]'),
+    page.locator('[data-testid="attachments"]'),
+    page.locator('[data-testid="media"]'),
+    page.locator('[data-testid^="removeMedia"]'),
+    page.locator('button[aria-label*="Remove media" i]'),
+    page.locator('img[src^="blob:"], video[src^="blob:"]'),
+    composer.locator('[data-testid="attachments"]'),
+    composer.locator('[data-testid="media"]'),
+    composer.locator('[data-testid^="removeMedia"]'),
+    composer.locator('button[aria-label*="Remove media" i]'),
+    composer.locator('img[src^="blob:"], video[src^="blob:"]'),
+  ];
 }
 
 async function attachXMedia(page: Page, filePath: string) {
@@ -192,8 +234,40 @@ async function attachXMedia(page: Page, filePath: string) {
     fileInput = pageInputs.last();
   }
 
-  await fileInput.setInputFiles(filePath);
+  await setLocalInputFile(page, fileInput, filePath);
+  const fileSelectionCompleted = true;
   console.log("X media selected; waiting for it to become ready...");
+
+  const deadline = Date.now() + Number(process.env.X_UPLOAD_TIMEOUT_MS ?? 300000);
+  let stablePreviewChecks = 0;
+  while (Date.now() < deadline) {
+    const preview = await firstVisible(xMediaPreviewLocators(page, composer));
+    const uploadError = await firstVisible([
+      page.locator('[data-testid="toast"]').filter({ hasText: /failed|error|unsupported|could not upload/i }),
+      page.locator('[role="alert"]').filter({ hasText: /failed|error|unsupported|could not upload/i }),
+    ]);
+    const uploadErrorText = (await uploadError?.textContent())?.replace(/\s+/g, " ").trim();
+    if (uploadErrorText) throw new Error(`X media upload error: ${uploadErrorText}`);
+
+    // X clears input.files after accepting the upload. A completed assignment
+    // proves selection; the rendered preview proves that processing completed.
+    if (hasReadyXMedia(fileSelectionCompleted, Boolean(preview))) {
+      stablePreviewChecks += 1;
+      if (stablePreviewChecks >= 2) {
+        console.log("X media preview is attached and ready.");
+        return;
+      }
+    } else {
+      stablePreviewChecks = 0;
+    }
+    await page.waitForTimeout(750);
+  }
+
+  throw new Error("X did not show an attached media preview, so Companion did not submit a text-only post.");
+}
+
+export function hasReadyXMedia(fileSelectionCompleted: boolean, previewVisible: boolean) {
+  return fileSelectionCompleted && previewVisible;
 }
 
 async function fillXCaption(page: Page, caption: string) {
@@ -218,7 +292,7 @@ async function fillXCaption(page: Page, caption: string) {
   console.log("X caption entered.");
 }
 
-async function clickXPostWhenReady(page: Page) {
+async function clickXPostWhenReady(page: Page, requireMedia: boolean, onSubmitted?: () => Promise<void> | void) {
   const composer = await getPostComposer(page);
   if (!composer) throw new Error("Could not find the X post composer before publishing.");
 
@@ -226,13 +300,22 @@ async function clickXPostWhenReady(page: Page) {
 
   while (Date.now() < deadline) {
     const postButton = await firstVisible([
+      page.locator('[role="dialog"] [data-testid="tweetButton"]'),
+      page.locator('[role="dialog"] [data-testid="tweetButtonInline"]'),
       composer.locator('[data-testid="tweetButton"]'),
+      composer.locator('[data-testid="tweetButtonInline"]'),
       composer.getByRole("button", { name: /^Post$/i }),
+      page.locator('[data-testid="tweetButton"]'),
+      page.locator('[data-testid="tweetButtonInline"]'),
     ]);
+    const mediaPreview = requireMedia
+      ? await firstVisible(xMediaPreviewLocators(page, composer))
+      : composer;
 
-    if (postButton && await postButton.isEnabled().catch(() => false)) {
+    if (postButton && mediaPreview && await postButton.isEnabled().catch(() => false)) {
       console.log("Clicking X Post button...");
       await postButton.click({ force: true, timeout: 10000 });
+      await onSubmitted?.();
       return composer;
     }
 
@@ -278,7 +361,7 @@ async function waitForXPostComplete(page: Page, composer: Locator) {
   throw new Error("X did not confirm the post within 90 seconds.");
 }
 
-async function waitForLoginResult(page: Page, allowManualLoginFromStart: boolean, ignoreLoginErrors = false) {
+async function waitForLoginResult(page: Page, allowManualLoginFromStart: boolean, ignoreLoginErrors = false, embeddedLogin = false) {
   await waitForLoginWithManualFallback({
     page,
     platform: "X",
@@ -291,6 +374,7 @@ async function waitForLoginResult(page: Page, allowManualLoginFromStart: boolean
     beforeCheck: () => dismissCookiePrompt(page),
     allowManualLoginFromStart,
     ignoreLoginErrors,
+    embeddedLogin,
   });
 }
 
@@ -306,19 +390,24 @@ export async function loginToX(page: Page, _upload?: PlatformUpload, holdAfterLo
   if (await isLoggedIn(page)) {
     console.log("X session already active.");
   } else if (savedSessionOnly) {
-    throw new Error("X saved browser session is not active. Open this account's Login action and complete login before the scheduled publish time.");
+    await waitForSavedSessionVerification({
+      page,
+      platform: "X",
+      isLoggedIn: () => isLoggedIn(page),
+      beforeCheck: () => dismissCookiePrompt(page),
+    });
   } else {
     await page.goto(X_LOGIN_URL, { timeout: 60000, waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1500);
     await dismissCookiePrompt(page);
 
-    console.log("Complete the full X login manually in Chrome; bot will save the session after the account opens.");
-    await waitForLoginResult(page, true, Boolean(accountLogin?.ignoreLoginErrors));
+    console.log("Complete the full X login manually in the visible browser; Companion will save the session after the account opens.");
+    await waitForLoginResult(page, true, Boolean(accountLogin?.ignoreLoginErrors), Boolean(accountLogin?.embeddedLogin));
   }
 
   if (!/x\.com\/home/i.test(page.url())) {
     await page.goto(X_HOME_URL, { timeout: 60000, waitUntil: "domcontentloaded" });
-    await waitForLoginResult(page, manualLoginOnly, Boolean(accountLogin?.ignoreLoginErrors));
+    await waitForLoginResult(page, manualLoginOnly, Boolean(accountLogin?.ignoreLoginErrors), Boolean(accountLogin?.embeddedLogin));
   }
 
   if (holdAfterLogin) {
@@ -333,17 +422,18 @@ export async function loginToX(page: Page, _upload?: PlatformUpload, holdAfterLo
 }
 
 export async function postToX(page: Page, upload: PlatformUpload, accountLogin?: AccountLogin) {
-  const filePath = publishingUploadFilePath(upload.fileName);
-  if (!fs.existsSync(filePath)) throw new Error(`X upload file not found: ${filePath}`);
+  const isTextOnly = upload.postFormat === "text" || upload.mimeType === "text/plain" || !upload.fileName;
+  const filePath = isTextOnly ? "" : publishingUploadFilePath(upload.fileName);
+  if (!isTextOnly && !fs.existsSync(filePath)) throw new Error(`X upload file not found: ${filePath}`);
 
   const caption = upload.caption?.trim();
   if (!caption) throw new Error("X caption is required.");
 
   await loginToX(page, upload, false, accountLogin);
   await openPostComposer(page);
-  await attachXMedia(page, filePath);
+  if (!isTextOnly) await attachXMedia(page, filePath);
   await fillXCaption(page, caption);
-  const composer = await clickXPostWhenReady(page);
+  const composer = await clickXPostWhenReady(page, !isTextOnly, accountLogin?.onFinalActionSubmitted);
   await waitForXPostComplete(page, composer);
 
   const holdTime = getPostHoldMs();
